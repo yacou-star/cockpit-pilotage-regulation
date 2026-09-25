@@ -2,7 +2,18 @@
 
 Chaque utilisateur **crée son compte** (e-mail + mot de passe), ne voit que **ses** données, et un rôle **administrateur** peut consulter et gérer l'ensemble. Les administrateurs sont désignés **par e-mail** dans le script d'installation — rien n'est automatique.
 
-**Vue d'ensemble :** créer le projet Supabase → exécuter `supabase/schema.sql` → coller URL + clé dans le cockpit → créer votre compte. Comptez **15 minutes**, tout est gratuit.
+**Vue d'ensemble :** créer le projet Supabase → exécuter `supabase/schema.sql` → intégrer URL + clé dans l'application → créer votre compte. Comptez **15 minutes**, tout est gratuit.
+
+## 👥 Qui fait quoi ?
+
+| Qui | Quoi | Quand |
+|---|---|---|
+| **Vous (l'organisateur)** | Créer le projet Supabase, exécuter le script, transmettre URL + clé pour intégration | **Une seule fois** |
+| **Les utilisateurs** | Ouvrir le site → e-mail + mot de passe → c'est tout | À chaque besoin |
+
+Les utilisateurs n'installent rien, ne configurent rien, ne touchent jamais à Supabase : l'URL et la clé sont **intégrées dans l'application elle-même** (constante `SUPABASE_EMBED` dans `index.html`). Ils voient uniquement un écran de connexion.
+
+> ⚠️ Tant que la constante `SUPABASE_EMBED` n'est pas remplie, l'écran de connexion affiche une section de configuration manuelle (mode de secours). Une fois intégrée et redéployée, cette section disparaît totalement.
 
 ---
 
@@ -34,16 +45,35 @@ Le site est servi depuis `https://yacou-star.github.io` — il faut le déclarer
 
 *(Pour tester en local, ajoutez aussi `http://127.0.0.1:*` dans les Redirect URLs.)*
 
-## 4. Connecter le cockpit (~2 min)
+## 4. Intégrer la configuration dans l'application (~2 min)
 
-1. Ouvrez https://yacou-star.github.io/cockpit-pilotage-regulation/ → **👤 Compte**
-2. Dépliez **Configuration du projet Supabase** → collez l'**URL** (Settings → API → Project URL) et la **clé publique (anon)** — une seule fois par navigateur
-3. **Créer mon compte** : votre e-mail + un mot de passe (8 caractères min.)
-4. Selon la configuration Supabase :
-   - **Sans confirmation e-mail** (par défaut) : vous êtes connecté immédiatement — avec le rôle **administrateur** si votre e-mail est dans la liste du script
+C'est l'étape qui épargne toute manipulation aux utilisateurs :
+
+1. Dans **Settings → API** : copiez l'**URL du projet** et la clé **anon/public**
+2. Dans le fichier `index.html`, remplissez la constante en tête du bloc AUTH :
+
+```js
+const SUPABASE_EMBED = {
+  url: 'https://xxxxxxxx.supabase.co',   // votre URL
+  key: 'eyJhbGciOi...'                   // votre clé anon
+};
+```
+
+3. Redéployez (`git add index.html && git commit -m "Config intégrée" && git push`)
+4. Vérification : ouvrez le site → 👤 Compte → **plus aucune section de configuration**, seulement e-mail + mot de passe
+
+## 4bis. (Secours) Configuration manuelle par navigateur
+
+Si la constante n'est pas remplie, chaque navigateur peut être configuré à la main via la section **Configuration du projet Supabase** de la fenêtre Compte — utile pour tester avant intégration, ou pour pointer vers un autre projet.
+## 5. Créer votre compte administrateur (~1 min)
+
+1. Ouvrez le site → **👤 Compte** → **Créer mon compte**
+2. Utilisez **l'e-mail que vous avez mis dans la liste ← ADMIN** du script
+3. Selon la configuration Supabase :
+   - **Sans confirmation e-mail** (par défaut) : vous êtes connecté immédiatement, avec le rôle **administrateur**
    - **Avec confirmation e-mail** : cliquez le lien reçu, puis connectez-vous
 
-## 5. Vérifier l'isolation des comptes (~3 min)
+## 6. Vérifier l'isolation des comptes (~3 min)
 
 1. Créez un **2ᵉ compte** (autre e-mail, même navigateur après déconnexion, ou navigation privée) → il est simple **Utilisateur**
 2. Sur ce compte : saisissez des données différentes → **Enregistrer dans le cloud** → déconnectez-vous
@@ -58,7 +88,7 @@ Le rôle admin n'est **jamais** attribué automatiquement. Trois façons de le g
 - **Après coup** : SQL Editor → `update public.profiles set role = 'admin' where email = 'quelqu_un@exemple.fr';` — la personne voit son panneau admin à sa prochaine connexion.
 - **Depuis le cockpit** : un admin existant utilise le bouton **Promouvoir admin** du panneau 🛡️.
 
-## 6. Pouvoirs de l'administrateur
+## 7. Pouvoirs de l'administrateur
 
 | Action | Comment |
 |---|---|

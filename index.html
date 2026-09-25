@@ -3131,11 +3131,23 @@ function renderAutoAnalysis(){
    AUTH (Supabase) — comptes utilisateurs + rôle administrateur
    Auth API (GoTrue) + REST (PostgREST). Aucune dépendance externe.
 ===================================================================== */
+/* CONFIGURATION INTÉGRÉE — remplie une fois pour toutes.
+   Quand url et key sont renseignées, les utilisateurs n'ont AUCUNE
+   configuration à faire : ils créent juste leur compte.
+   (Laissez vide tant que le projet Supabase n'existe pas.) */
+const SUPABASE_EMBED = {
+  url: '',   // ex. 'https://xxxxxxxx.supabase.co'
+  key: ''    // clé publique (anon), ex. 'eyJhbGciOi...'
+};
+
 const AUTH = {
   profile: null,        // { id, email, role } une fois connecté
   viewingUserId: null,  // mode « vue admin » : données d'un autre compte affichées
 
   get cfg(){
+    if(SUPABASE_EMBED.url && SUPABASE_EMBED.key){
+      return { url: SUPABASE_EMBED.url, key: SUPABASE_EMBED.key };
+    }
     try{ return JSON.parse(localStorage.getItem('pilotage.auth.cfg')||'null') || {url:'',key:''}; }
     catch(_){ return {url:'',key:''}; }
   },
@@ -3296,11 +3308,12 @@ function renderAuthUI(){
   document.getElementById('authSessionView').style.display = logged ? 'block' : 'none';
   if(!logged){
     const c = AUTH.cfg;
+    const embedded = !!(SUPABASE_EMBED.url && SUPABASE_EMBED.key);
     document.getElementById('authCfgUrl').value = c.url || '';
     document.getElementById('authCfgKey').value = c.key || '';
-    const configured = !!(c.url && c.key);
-    document.getElementById('authCfgBox').open = !configured;
-    if(!configured){ authSetStatus('', 'Configurez d\'abord l\'URL et la clé du projet (section ci-dessous).'); }
+    document.getElementById('authCfgBox').style.display = embedded ? 'none' : 'block';
+    if(embedded){ authSetStatus('', 'Prêt — entrez votre e-mail et votre mot de passe.'); }
+    else if(!(c.url && c.key)){ authSetStatus('', 'Configurez d\'abord l\'URL et la clé du projet (section ci-dessous).'); }
     else{ authSetStatus('', 'Prêt — entrez votre e-mail et votre mot de passe.'); }
     return;
   }
