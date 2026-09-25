@@ -630,6 +630,17 @@ table.formula td.f-formula{background:var(--accent-soft); color:var(--bleu-fonce
         <button class="btn primary" id="authSave">⬆️ Enregistrer dans le cloud</button>
         <button class="btn ghost" id="authLoad">⬇️ Recharger mes données</button>
       </div>
+      <div id="authPassBox" style="display:none; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:12px 14px; margin-top:10px">
+        <div class="cloud-field"><label for="authNewPass">Nouveau mot de passe (8 caractères minimum)</label><input id="authNewPass" type="password" autocomplete="new-password" placeholder="••••••••"></div>
+        <div class="cloud-field"><label for="authNewPass2">Confirmer le nouveau mot de passe</label><input id="authNewPass2" type="password" autocomplete="new-password" placeholder="••••••••"></div>
+        <div class="cloud-actions" style="margin-top:6px">
+          <button class="btn primary" id="authPassSave">Enregistrer le mot de passe</button>
+          <button class="btn small" id="authPassCancel">Annuler</button>
+        </div>
+      </div>
+      <div class="cloud-actions" style="justify-content:flex-start">
+        <button class="btn small" id="authChangePass">🔑 Changer mon mot de passe</button>
+      </div>
       <div id="authAdminSection" style="display:none">
         <div style="height:14px"></div>
         <h3 style="font-size:.95rem">🛡️ Administration</h3>
@@ -3291,6 +3302,13 @@ const AUTH = {
       const row = await this.load();
       if(row && row.data){ importData(row.data); }
     }catch(_){}
+  },
+  async updatePassword(newPass){
+    const r = await this.call('/auth/v1/user', { method:'PUT', body: JSON.stringify({ password: newPass }) });
+    if(!r.ok){ const j = await r.json().catch(()=>({})); throw new Error(this.errMsg(j, r.status)); }
+    const j = await r.json().catch(()=>null);
+    if(j && j.access_token){ this.setSession(j); } // certains renvoient une session renouvelée
+    return true;
   }
 };
 
@@ -3481,6 +3499,27 @@ function setupAuth(){
         showToast('Vos données du ' + new Date(row.updated_at).toLocaleString('fr-FR') + ' ont été rechargées ✓');
       }
     }catch(err){ showToast('Échec du chargement : ' + err.message, true); }
+    finally{ b.disabled = false; b.textContent = old; }
+  });
+  document.getElementById('authChangePass').addEventListener('click', ()=>{
+    const box = document.getElementById('authPassBox');
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    document.getElementById('authNewPass').value = '';
+    document.getElementById('authNewPass2').value = '';
+  });
+  document.getElementById('authPassCancel').addEventListener('click', ()=>{ document.getElementById('authPassBox').style.display = 'none'; });
+  document.getElementById('authPassSave').addEventListener('click', async ()=>{
+    const p1 = document.getElementById('authNewPass').value;
+    const p2 = document.getElementById('authNewPass2').value;
+    if(p1.length < 8){ showToast('Mot de passe trop court : 8 caractères minimum.', true); return; }
+    if(p1 !== p2){ showToast('Les deux mots de passe ne correspondent pas.', true); return; }
+    const b = document.getElementById('authPassSave');
+    b.disabled = true; const old = b.textContent; b.textContent = 'Modification…';
+    try{
+      await AUTH.updatePassword(p1);
+      document.getElementById('authPassBox').style.display = 'none';
+      showToast('Mot de passe modifié ✓ — utilisez-le à votre prochaine connexion');
+    }catch(err){ showToast('Échec : ' + err.message, true); }
     finally{ b.disabled = false; b.textContent = old; }
   });
   document.getElementById('authBackToOwn').addEventListener('click', async ()=>{
