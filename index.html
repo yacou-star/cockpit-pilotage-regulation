@@ -547,6 +547,7 @@ table.formula td.f-formula{background:var(--accent-soft); color:var(--bleu-fonce
     <button class="btn nav-btn" id="btnExport">💾 JSON</button>
     <button class="btn nav-btn" id="btnImport">📂 Import</button>
     <input type="file" id="fileImport" accept="application/json" style="display:none">
+    <button class="btn nav-btn" id="btnCloud" title="Sauvegarde cloud Supabase — données accessibles depuis n'importe quel appareil">☁️ Cloud</button>
     <button class="btn nav-btn gold" id="btnReport">📄 Rapport Word</button>
   </div>
 </nav>
@@ -560,6 +561,49 @@ table.formula td.f-formula{background:var(--accent-soft); color:var(--bleu-fonce
   </div>
   <div id="toast" class="toast"></div>
   <div id="resPopover" class="res-popover"></div>
+
+<!-- ======================= CLOUD (Supabase) ======================= -->
+<style>
+.cloud-overlay{position:fixed; inset:0; background:rgba(10,20,35,.45); display:none; align-items:center; justify-content:center; z-index:1000; padding:16px;}
+.cloud-overlay.open{display:flex;}
+.cloud-card{background:#fff; border-radius:14px; box-shadow:0 18px 60px rgba(10,20,35,.35); width:min(560px,100%); max-height:90vh; overflow:auto; padding:22px 24px;}
+.cloud-card h3{margin:0 0 4px; font-size:1.05rem;}
+.cloud-sub{margin:0 0 16px; color:#64748B; font-size:.85rem;}
+.cloud-field{display:flex; flex-direction:column; gap:4px; margin-bottom:12px;}
+.cloud-field label{font-size:.78rem; font-weight:600; color:#334155;}
+.cloud-field input{border:1px solid #D7DEE9; border-radius:8px; padding:8px 10px; font-size:.85rem; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+.cloud-status{display:flex; align-items:center; gap:8px; font-size:.82rem; margin:4px 0 14px; color:#334155;}
+.cloud-status .dot{width:9px; height:9px; border-radius:50%; background:#CBD5E1; display:inline-block; flex:none;}
+.cloud-status.ok .dot{background:#16A34A;} .cloud-status.ok{color:#166534;}
+.cloud-status.err .dot{background:#DC2626;} .cloud-status.err{color:#991B1B;}
+.cloud-actions{display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; margin-top:14px;}
+.cloud-note{font-size:.75rem; color:#64748B; line-height:1.45; background:#F1F5F9; border-radius:8px; padding:8px 10px; margin-top:12px;}
+</style>
+<div class="cloud-overlay" id="cloudOverlay">
+  <div class="cloud-card" role="dialog" aria-modal="true" aria-labelledby="cloudTitle">
+    <h3 id="cloudTitle">☁️ Sauvegarde cloud</h3>
+    <p class="cloud-sub">Vos données (paramètres, ressources, flux, projets, activités, matrices) sont enregistrées dans votre base Supabase et peuvent être rechargées depuis n'importe quel appareil.</p>
+    <div class="cloud-field">
+      <label for="cloudUrl">URL du projet Supabase</label>
+      <input id="cloudUrl" type="text" placeholder="https://xxxxxxxx.supabase.co" autocomplete="off">
+    </div>
+    <div class="cloud-field">
+      <label for="cloudKey">Clé publique (anon)</label>
+      <input id="cloudKey" type="password" placeholder="eyJhbGciOi..." autocomplete="off">
+    </div>
+    <div class="cloud-field">
+      <label for="cloudWorkspace">Espace de travail</label>
+      <input id="cloudWorkspace" type="text" placeholder="cockpit" autocomplete="off">
+    </div>
+    <div class="cloud-status" id="cloudStatus"><span class="dot"></span><span id="cloudStatusText">Non connecté — renseignez l'URL et la clé.</span></div>
+    <div class="cloud-actions">
+      <button class="btn ghost" id="cloudLoad">⬇️ Charger le cloud</button>
+      <button class="btn primary" id="cloudSave">⬆️ Enregistrer dans le cloud</button>
+      <button class="btn small" id="cloudClose">Fermer</button>
+    </div>
+    <div class="cloud-note">⚠️ À faire une seule fois : exécutez le script SQL fourni (<b>supabase/schema.sql</b> — voir <b>SUPABASE-GUIDE.md</b>) dans votre Supabase, onglet « SQL Editor ». La clé « anon » n'est pas secrète : elle identifie seulement votre projet.</div>
+  </div>
+</div>
 
   <div class="content" id="content">
 
@@ -3039,6 +3083,136 @@ function renderAutoAnalysis(){
 }
 
 /* =====================================================================
+   CLOUD (Supabase) — sauvegarde / rechargement du cockpit
+   Utilise l'API REST Supabase (PostgREST) : aucune dépendance externe.
+===================================================================== */
+const CLOUD = {
+  get cfg(){
+    try{ return JSON.parse(localStorage.getItem('pilotage.cloud.cfg')||'null') || {url:'',key:'',workspace:'cockpit'}; }
+    catch(_){ return {url:'',key:'',workspace:'cockpit'}; }
+  },
+  setCfg(c){ localStorage.setItem('pilotage.cloud.cfg', JSON.stringify(c)); },
+  headers(){
+    const c = this.cfg;
+    return {
+      'apikey': c.key,
+      'Authorization': 'Bearer ' + c.key,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    };
+  },
+  tableUrl(){
+    const c = this.cfg;
+    return c.url.replace(/\/+$/, '') + '/rest/v1/cockpit_state?workspace=eq.' + encodeURIComponent(c.workspace || 'cockpit');
+  },
+  async statusCheck(silent){
+    const c = this.cfg;
+    const el = document.getElementById('cloudStatus'), txt = document.getElementById('cloudStatusText');
+    const set = (cls, msg)=>{ if(el){ el.className = 'cloud-status ' + cls; } if(txt){ txt.textContent = msg; } };
+    if(!c.url || !c.key){ set('', 'Non connecté — renseignez l\'URL et la clé.'); return false; }
+    try{
+      const r = await fetch(this.tableUrl() + '&select=workspace&limit=1', { headers: this.headers() });
+      if(r.status === 404){ set('err', 'Table « cockpit_state » introuvable — exécutez supabase/schema.sql (onglet SQL Editor).'); return false; }
+      if(!r.ok){
+        let msg = 'Erreur ' + r.status;
+        try{ const j = await r.json(); if(j && j.message) msg += ' : ' + j.message; }catch(_){}
+        set('err', msg + ' — vérifiez URL et clé.');
+        return false;
+      }
+      set('ok', 'Connecté ✓ espace « ' + (c.workspace||'cockpit') + ' »');
+      return true;
+    }catch(err){
+      set('err', 'Connexion impossible : ' + err.message);
+      return false;
+    }
+  },
+  async save(){
+    if(!(await this.statusCheck())){ return; }
+    const btn = document.getElementById('cloudSave');
+    const old = btn ? btn.textContent : '';
+    if(btn){ btn.disabled = true; btn.textContent = 'Enregistrement…'; }
+    try{
+      const c = this.cfg;
+      const payload = {
+        workspace: c.workspace || 'cockpit',
+        data: {
+          params, resources, flux, projets, matrix, activites, matrixActivite
+        },
+        updated_at: new Date().toISOString()
+      };
+      const r = await fetch(this.tableUrl(), {
+        method: 'POST', headers: this.headers(), body: JSON.stringify(payload)
+      });
+      if(!r.ok){
+        let msg = 'Erreur ' + r.status;
+        try{ const j = await r.json(); if(j && j.message) msg += ' : ' + j.message; }catch(_){}
+        throw new Error(msg);
+      }
+      this.statusCheck(true);
+      showToast('Cockpit enregistré dans le cloud ✓');
+    }catch(err){
+      console.error(err);
+      showToast('Échec de la sauvegarde cloud : ' + err.message, true);
+    }finally{
+      if(btn){ btn.disabled = false; btn.textContent = old; }
+    }
+  },
+  async load(){
+    if(!(await this.statusCheck())){ return; }
+    const btn = document.getElementById('cloudLoad');
+    const old = btn ? btn.textContent : '';
+    if(btn){ btn.disabled = true; btn.textContent = 'Chargement…'; }
+    try{
+      const r = await fetch(this.tableUrl() + '&select=data,updated_at', { headers: this.headers() });
+      if(!r.ok){
+        let msg = 'Erreur ' + r.status;
+        try{ const j = await r.json(); if(j && j.message) msg += ' : ' + j.message; }catch(_){}
+        throw new Error(msg);
+      }
+      const rows = await r.json();
+      if(!rows.length){
+        showToast('Aucune sauvegarde cloud pour cet espace — utilisez « Enregistrer » d\'abord.', true);
+        return;
+      }
+      importData(rows[0].data);
+      showToast('Données du cloud rechargées ✓ (sauvegarde du ' + new Date(rows[0].updated_at).toLocaleString('fr-FR') + ')');
+    }catch(err){
+      console.error(err);
+      showToast('Échec du chargement cloud : ' + err.message, true);
+    }finally{
+      if(btn){ btn.disabled = false; btn.textContent = old; }
+    }
+  }
+};
+
+function setupCloud(){
+  const overlay = document.getElementById('cloudOverlay');
+  const btn = document.getElementById('btnCloud');
+  if(!overlay || !btn) return;
+  const cfgInput = k => document.getElementById('cloud' + k);
+  const c = CLOUD.cfg;
+  cfgInput('Url').value = c.url || '';
+  cfgInput('Key').value = c.key || '';
+  cfgInput('Workspace').value = c.workspace || 'cockpit';
+  const persist = ()=>{
+    CLOUD.setCfg({
+      url: cfgInput('Url').value.trim(),
+      key: cfgInput('Key').value.trim(),
+      workspace: (cfgInput('Workspace').value.trim() || 'cockpit')
+    });
+  };
+  const refreshStatus = ()=>{ persist(); CLOUD.statusCheck(); };
+  btn.addEventListener('click', ()=>{ refreshStatus(); overlay.classList.add('open'); });
+  document.getElementById('cloudClose').addEventListener('click', ()=> overlay.classList.remove('open'));
+  overlay.addEventListener('click', e=>{ if(e.target === overlay) overlay.classList.remove('open'); });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape') overlay.classList.remove('open'); });
+  ['Url','Key','Workspace'].forEach(k=> cfgInput(k).addEventListener('change', refreshStatus));
+  document.getElementById('cloudSave').addEventListener('click', ()=> CLOUD.save());
+  document.getElementById('cloudLoad').addEventListener('click', ()=> CLOUD.load());
+}
+
+/* =====================================================================
    INIT
 ===================================================================== */
 function init(){
@@ -3050,6 +3224,7 @@ function init(){
   rebuildMatrixHeaders();
   buildAide();
   setupSaveLoad();
+  setupCloud();
   setupSeasonTab();
   const today = new Date();
   document.getElementById('todayLabel').textContent = 'Nous sommes le ' + today.toLocaleDateString('fr-FR');
