@@ -1,0 +1,3062 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Pilotage &amp; Régulation — Cockpit de charge</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF1F6;
+  --panel:#FFFFFF;
+  --panel-2:#FAFBFD;
+  --border:#DFE4EC;
+  --ink:#10151F;
+  --ink-soft:#5B6472;
+  --ink-faint:#8A93A3;
+  --navy:#0A0F1A;
+  --navy-2:#121A2B;
+  --navy-3:#1B2540;
+  --accent:#0EA5A4;
+  --accent-ink:#053E3D;
+  --accent-soft:#D8F5F3;
+  --blue:#2563EB;
+  --blue-soft:#DCE7FF;
+  --green:#16A34A;
+  --green-soft:#DBF3E3;
+  --amber:#D97706;
+  --amber-soft:#FCEACB;
+  --red:#DC2626;
+  --red-soft:#FBDADA;
+  --display:'Space Grotesk',sans-serif;
+  --body:'Inter',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+  --radius:10px;
+  --shadow:0 1px 2px rgba(10,15,26,.04), 0 8px 24px -12px rgba(10,15,26,.12);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--body);
+  background:var(--bg);
+  color:var(--ink);
+  font-size:14px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--display); margin:0; letter-spacing:-.01em;}
+.mono{font-family:var(--mono);}
+button{font-family:var(--body); cursor:pointer;}
+input,select{font-family:var(--body); font-size:13px;}
+
+/* ---------- Layout shell ---------- */
+.shell{display:grid; grid-template-columns:248px 1fr; min-height:100vh;}
+.sidebar{
+  background:linear-gradient(180deg,var(--navy) 0%, var(--navy-2) 100%);
+  color:#C9D2E3;
+  padding:22px 16px 16px;
+  display:flex; flex-direction:column; gap:22px;
+  position:sticky; top:0; height:100vh;
+}
+.brand{display:flex; align-items:center; gap:10px; padding:0 6px;}
+.brand-mark{
+  width:34px;height:34px;border-radius:9px;
+  background:conic-gradient(from 220deg, var(--accent), #3B82F6 45%, var(--accent) 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--display); font-weight:700; color:#04201F; font-size:14px;
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.18);
+}
+.brand-text{line-height:1.15;}
+.brand-text .t1{font-family:var(--display); font-weight:700; font-size:14.5px; color:#F2F5FB;}
+.brand-text .t2{font-size:10.5px; color:#7C8AA8; letter-spacing:.04em; text-transform:uppercase;}
+
+.nav{display:flex; flex-direction:column; gap:2px; margin-top:4px;}
+.nav-item{
+  display:flex; align-items:center; gap:10px;
+  padding:9px 10px; border-radius:8px; color:#AEB8CC;
+  font-size:13px; font-weight:500; cursor:pointer; border:1px solid transparent;
+  transition:background .12s ease, color .12s ease;
+}
+.nav-item .ic{width:17px; text-align:center; font-size:13px; opacity:.9;}
+.nav-item:hover{background:rgba(255,255,255,.05); color:#EAEFFA;}
+.nav-item.active{
+  background:rgba(14,165,164,.14); color:#EAFFFE; border-color:rgba(14,165,164,.35);
+}
+.nav-index{font-family:var(--mono); font-size:10px; color:#5E6A85; width:14px;}
+
+.sidebar-foot{margin-top:auto; padding:10px 6px 2px; border-top:1px solid rgba(255,255,255,.08);}
+.sidebar-foot .lbl{font-size:10px; color:#657194; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px;}
+.mini-status{display:flex; align-items:center; gap:8px; font-size:12px; color:#C9D2E3;}
+.dot{width:8px;height:8px;border-radius:50%; background:var(--accent); box-shadow:0 0 0 3px rgba(14,165,164,.18);}
+
+/* ---------- Main ---------- */
+.main{min-width:0;}
+.topbar{
+  position:sticky; top:0; z-index:20;
+  background:rgba(255,255,255,.86); backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border);
+  padding:14px 28px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+}
+.topbar h1{font-size:18px;}
+.topbar .sub{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+.topbar-actions{display:flex; gap:8px; align-items:center;}
+.btn{
+  border:1px solid var(--border); background:var(--panel); color:var(--ink);
+  padding:8px 14px; border-radius:8px; font-size:12.5px; font-weight:600;
+  display:inline-flex; align-items:center; gap:7px; transition:all .12s ease;
+  text-decoration:none; cursor:pointer;
+}
+.btn:hover{border-color:#C7CEDB; background:#F5F7FA;}
+.btn.primary{background:var(--navy); border-color:var(--navy); color:#fff;}
+.btn.primary:hover{background:var(--navy-3);}
+.btn.accent{background:var(--accent); border-color:var(--accent); color:#022B2A;}
+.btn.accent:hover{filter:brightness(1.05);}
+.btn.ghost{background:transparent; border-color:transparent; color:var(--ink-soft);}
+.btn.ghost:hover{background:#F1F3F7;}
+.btn.small{padding:5px 10px; font-size:11.5px;}
+
+.content{padding:24px 28px 64px;}
+.view{display:none;}
+.view.active{display:block;}
+
+.section-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; gap:10px; flex-wrap:wrap;}
+.section-head h2{font-size:16.5px;}
+.section-head .desc{font-size:12.5px; color:var(--ink-soft); margin-top:3px;}
+.eyebrow{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--accent-ink); background:var(--accent-soft); border-radius:5px;
+  padding:2px 7px; display:inline-block; margin-bottom:6px;
+}
+
+/* Cards / KPIs */
+.grid{display:grid; gap:14px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+.card{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px 16px; box-shadow:var(--shadow);
+}
+.kpi-label{font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; font-weight:600;}
+.kpi-value{font-family:var(--mono); font-size:26px; font-weight:600; margin-top:6px; color:var(--ink); letter-spacing:-.01em;}
+.kpi-unit{font-size:12px; color:var(--ink-faint); font-weight:500; margin-left:3px;}
+.kpi-foot{font-size:11.5px; color:var(--ink-faint); margin-top:6px;}
+
+.panel-title{font-size:13px; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:8px;}
+.panel-title .n{font-family:var(--mono); color:var(--accent-ink); background:var(--accent-soft); border-radius:5px; font-size:10px; padding:1px 6px;}
+
+/* badges */
+.badge{
+  display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:100px;
+  font-size:11px; font-weight:700; letter-spacing:.01em; white-space:nowrap;
+}
+.badge::before{content:''; width:6px;height:6px;border-radius:50%;background:currentColor;}
+.badge.sous-charge{background:var(--blue-soft); color:#1D4ED8;}
+.badge.zone-cible, .badge.cible, .badge.ok{background:var(--green-soft); color:#0E7A38;}
+.badge.vigilance, .badge.surveillance{background:var(--amber-soft); color:#B45F04;}
+.badge.surcharge, .badge.risque, .badge.sla-en-risque, .badge.capacite-insuffisante{background:var(--red-soft); color:#B91C1C;}
+.badge.neutral{background:#EAECF1; color:#4B5566;}
+
+/* Gauge */
+.gauge-wrap{display:flex; flex-direction:column; align-items:center; gap:6px;}
+.gauge-num{font-family:var(--mono); font-size:30px; font-weight:600; margin-top:-38px;}
+.gauge-lbl{font-size:11px; color:var(--ink-soft); font-weight:600; text-transform:uppercase; letter-spacing:.04em;}
+
+/* Tables */
+.table-card{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;}
+.table-scroll{overflow-x:auto;}
+table.data{border-collapse:collapse; width:100%; min-width:900px;}
+table.data th{
+  background:var(--panel-2); text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em;
+  color:var(--ink-soft); font-weight:700; padding:9px 10px; border-bottom:1px solid var(--border); white-space:nowrap;
+  position:sticky; top:0;
+}
+table.data td{padding:5px 8px; border-bottom:1px solid #EEF0F4; font-size:12.5px; white-space:nowrap;}
+table.data tbody tr:hover{background:#F8FAFC;}
+table.data tfoot td{background:var(--panel-2); font-weight:700; border-top:1px solid var(--border);}
+table.data td.num, table.data th.num{text-align:right; font-family:var(--mono);}
+table.data input, table.data select{
+  width:100%; border:1px solid transparent; background:transparent; border-radius:6px;
+  padding:5px 6px; color:var(--ink); min-width:64px;
+}
+table.data input:hover, table.data select:hover{border-color:var(--border);}
+table.data input:focus, table.data select:focus{outline:none; border-color:var(--accent); background:#fff; box-shadow:0 0 0 3px rgba(3,105,161,.12);}
+table.data input.num{font-family:var(--mono); text-align:right;}
+table.data input[type=date]{min-width:118px;}
+.computed{color:var(--ink-soft); font-family:var(--mono);}
+.rowlabel{font-family:var(--mono); color:var(--ink-faint); font-size:11px;}
+.mat-cell{text-align:center;}
+.mat-toggle{
+  width:30px;height:20px;border-radius:100px; border:1px solid var(--border); background:#EDEFF3;
+  position:relative; cursor:pointer; display:inline-block;
+}
+.mat-toggle::after{content:''; position:absolute; top:1px; left:1px; width:16px;height:16px;border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25); transition:transform .12s ease;}
+.mat-toggle.on{background:var(--accent); border-color:var(--accent);}
+.mat-toggle.on::after{transform:translateX(10px);}
+.row-del{
+  border:1px solid var(--border); background:var(--panel); color:var(--ink-faint);
+  width:26px; height:26px; border-radius:7px; font-size:12.5px; line-height:1; display:inline-flex; align-items:center; justify-content:center;
+  transition:all .12s ease;
+}
+.row-del:hover{background:var(--red-soft); border-color:#F3B9B9; color:var(--red);}
+
+/* Multi-resource picker (Projets table) */
+.res-picker-btn{
+  display:inline-flex; align-items:center; gap:6px; max-width:220px;
+  border:1px solid var(--border); background:var(--panel-2); color:var(--ink);
+  padding:5px 10px; border-radius:100px; font-size:12px; font-weight:600;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.res-picker-btn:hover{border-color:var(--accent); background:#fff;}
+.res-picker-btn.empty{color:var(--ink-faint); font-weight:500;}
+.res-popover{
+  position:fixed; z-index:200; background:var(--panel); border:1px solid var(--border); border-radius:10px;
+  box-shadow:var(--shadow); padding:8px; min-width:200px; max-width:260px; max-height:280px; overflow-y:auto;
+  display:none;
+}
+.res-popover.open{display:block;}
+.res-popover .rp-title{font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-faint); font-weight:700; padding:4px 8px 8px;}
+.res-popover label{
+  display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:7px; font-size:12.5px; cursor:pointer;
+}
+.res-popover label:hover{background:var(--panel-2);}
+.res-popover input[type=checkbox]{width:15px; height:15px; accent-color:var(--accent); margin:0;}
+.res-popover .rp-empty{padding:8px; font-size:12px; color:var(--ink-faint);}
+
+/* Params */
+.param-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.param-row{
+  background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:11px 13px;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+}
+.param-row .p-l{min-width:0;}
+.param-row .p-name{font-size:12.5px; font-weight:600;}
+.param-row .p-desc{font-size:11px; color:var(--ink-soft); margin-top:2px;}
+.param-row .p-in{flex:0 0 auto;}
+.param-row input, .param-row select{
+  width:110px; padding:7px 9px; border:1px solid var(--border); border-radius:7px; background:var(--panel-2);
+  font-family:var(--mono); text-align:right; font-size:12.5px;
+}
+.param-row select{font-family:var(--body); text-align:left; width:140px;}
+.param-row input:focus, .param-row select:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(3,105,161,.12);}
+
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--ink-soft); margin-top:10px;}
+.legend span{display:inline-flex; align-items:center; gap:6px;}
+.legend i{width:9px;height:9px;border-radius:3px; display:inline-block;}
+
+.toolbar{display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center;}
+.toolbar .spacer{flex:1;}
+.hint{font-size:11.5px; color:var(--ink-faint);}
+
+.help-list{display:flex; flex-direction:column; gap:10px;}
+.help-item{display:flex; gap:12px; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:13px 15px; box-shadow:var(--shadow);}
+.help-num{font-family:var(--mono); font-weight:700; color:var(--accent-ink); background:var(--accent-soft); border-radius:7px; width:28px;height:28px; display:flex; align-items:center; justify-content:center; flex:none; font-size:12px;}
+.help-item h4{font-size:13px; margin-bottom:3px;}
+.help-item p{margin:0; font-size:12.5px; color:var(--ink-soft); line-height:1.5;}
+
+.aide-section{margin-top:26px;}
+.aide-section-head{margin-bottom:12px;}
+.aide-section-head h3{font-size:14.5px;}
+.aide-section-head .desc{font-size:12px; color:var(--ink-soft); margin-top:3px;}
+
+.glossary-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px;}
+@media (max-width:1100px){ .glossary-grid{grid-template-columns:1fr;} }
+.gloss-item{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:12px 14px; box-shadow:var(--shadow);}
+.gloss-item dt{font-family:var(--mono); font-weight:700; font-size:12.5px; color:var(--accent-ink); background:var(--accent-soft); display:inline-block; border-radius:5px; padding:2px 8px; margin:0 0 6px;}
+.gloss-item dd{margin:0; font-size:12.5px; color:var(--ink); line-height:1.5;}
+
+.formula-table-card{margin-bottom:16px;}
+.formula-table-card .ftc-head{padding:12px 15px 0; font-size:12.5px; font-weight:700; color:var(--ink);}
+table.formula{border-collapse:collapse; width:100%; min-width:640px;}
+table.formula th{
+  background:var(--panel-2); text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em;
+  color:var(--ink-soft); font-weight:700; padding:9px 12px; border-bottom:1px solid var(--border); white-space:nowrap;
+}
+table.formula td{padding:9px 12px; border-bottom:1px solid #EEF0F4; font-size:12.5px; vertical-align:top;}
+table.formula tr:last-child td{border-bottom:none;}
+table.formula td.f-name{font-weight:700; white-space:nowrap; color:var(--ink);}
+table.formula td.f-formula{font-family:var(--mono); font-size:12px; color:var(--accent-ink); background:var(--accent-soft); border-radius:6px; white-space:pre-wrap;}
+table.formula td.f-desc{color:var(--ink-soft); line-height:1.5;}
+
+.two-col{display:grid; grid-template-columns:1.3fr 1fr; gap:16px; align-items:start;}
+@media (max-width:1100px){ .two-col{grid-template-columns:1fr;} .grid-4{grid-template-columns:repeat(2,1fr);} }
+
+.footer-note{font-size:11px; color:var(--ink-faint); margin-top:22px; text-align:center;}
+
+.toast{
+  position:fixed; top:16px; right:24px; z-index:100;
+  background:var(--navy); color:#fff; padding:10px 16px; border-radius:8px; font-size:12.5px; font-weight:600;
+  box-shadow:var(--shadow); opacity:0; transform:translateY(-8px); pointer-events:none; transition:all .2s ease;
+}
+.toast.show{opacity:1; transform:translateY(0);}
+.toast.error{background:var(--red);}
+
+.ai-hero{
+  background:linear-gradient(135deg,var(--navy) 0%, var(--navy-3) 100%); color:#EAF0FF;
+  border-radius:var(--radius); padding:22px 24px; display:flex; align-items:center; justify-content:space-between; gap:18px; box-shadow:var(--shadow); flex-wrap:wrap;
+}
+.ai-hero h3{color:#fff; font-size:16px; margin-bottom:4px;}
+.ai-hero p{margin:0; font-size:12.5px; color:#AEB9D6; max-width:520px;}
+.ai-hero .btn{background:var(--accent); border-color:var(--accent); color:#022B2A;}
+.ai-spinner{width:14px;height:14px;border-radius:50%; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; display:inline-block; animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ai-empty{padding:40px 20px; text-align:center; color:var(--ink-faint); font-size:13px;}
+.risk-card{border-radius:9px; border:1px solid var(--border); padding:12px 14px; background:var(--panel);}
+.risk-card .rt{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:5px;}
+.risk-card h4{font-size:13px;}
+.risk-card p{margin:0; font-size:12px; color:var(--ink-soft); line-height:1.5;}
+.reco-list{margin:0; padding-left:18px; display:flex; flex-direction:column; gap:7px; font-size:12.5px; color:var(--ink);}
+.ai-synth{font-size:13px; line-height:1.6; color:var(--ink);}
+
+/* ---------- Print (in-place, no separate window) ---------- */
+@media print{
+  .sidebar, .topbar-actions, .toolbar, .btn{display:none !important;}
+  .shell{display:block;}
+  .topbar{display:none !important;}
+  .content{padding:0;}
+  body{background:#fff;}
+  .card, .table-card, .param-row, .help-item{box-shadow:none; border:1px solid #ccc; break-inside:avoid;}
+  table.data input, table.data select, .param-row input, .param-row select{border:none !important; background:transparent !important; box-shadow:none !important; color:#000 !important;}
+  .mat-toggle{border:1px solid #999;}
+  a{color:inherit; text-decoration:none;}
+}
+#tmpPrintBanner{display:none;}
+</style>
+<style id="theme-retex">
+/* =====================================================================
+   THÈME « RETEX » — refonte visuelle de l'application Pilotage & Régulation
+   dans le style de l'application RETEX : palette nuit / bleu ciel, navbar
+   horizontale, cartes arrondies à ombre douce, badges pleins, boutons
+   colorés. Cette feuille s'applique par-dessus la feuille de base.
+===================================================================== */
+:root{
+  --nuit:#0C2D4D; --bleu-fonce:#0C4A6E; --bleu:#0369A1; --pex:#0EA5E9;
+  --retex:#E76F51; --rouge:#B32025; --vert:#1FA04B; --ambre:#F59E0B;
+  --gold:#FFD166; --papier:#F8FAFC; --gris:#64748B; --ligne:#E2E8F0;
+  /* alias conservés pour le moteur JS (jauge, graphiques, statuts) */
+  --bg:#F1F5F9; --panel:#FFFFFF; --panel-2:#F8FAFC; --border:#E2E8F0;
+  --ink:#1E293B; --ink-soft:#475569; --ink-faint:#94A3B8;
+  --navy:var(--nuit); --navy-2:#123A5C; --navy-3:#16456E;
+  --accent:var(--bleu); --accent-ink:#0C4A6E; --accent-soft:#E0F2FE;
+  --blue:var(--bleu); --blue-soft:#E0F2FE; --green:var(--vert); --green-soft:#DCFCE7;
+  --amber:var(--ambre); --amber-soft:#FEF3C7; --red:var(--rouge); --red-soft:#FEE2E2;
+  --display:'Helvetica Neue',Helvetica,Arial,sans-serif;
+  --body:'Helvetica Neue',Helvetica,Arial,sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+  --radius:14px;
+  --shadow:0 1px 4px rgba(15,23,42,.08), 0 8px 24px rgba(15,23,42,.05);
+}
+html{scroll-behavior:smooth;}
+body{
+  background:linear-gradient(160deg,#E2E8F0 0%,#F1F5F9 40%,#E2E8F0 100%);
+  font-family:var(--body); color:var(--ink); font-size:13.5px;
+  min-height:100vh; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--body); letter-spacing:0;}
+.mono{font-family:var(--mono);}
+
+/* ---------- NAVBAR horizontale (remplace sidebar + topbar) ---------- */
+.navbar{
+  position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:14px;
+  padding:12px 26px; background:linear-gradient(90deg,var(--nuit),var(--bleu-fonce) 60%,var(--bleu));
+  color:#fff; box-shadow:0 2px 14px rgba(2,6,23,.35); flex-wrap:wrap;
+}
+.navbar .logo{font-weight:800; letter-spacing:.12em; font-size:.95rem; white-space:nowrap;}
+.navbar .logo b{color:var(--gold);}
+.navbar .sep{width:1px; height:22px; background:rgba(255,255,255,.25); flex:none;}
+.navlinks{display:flex; gap:4px; flex-wrap:wrap;}
+.navlinks .nav-item{
+  background:transparent; border:none; color:#CFE3F7; font-size:.82rem; font-weight:700;
+  letter-spacing:.05em; padding:8px 13px; border-radius:8px; transition:.15s; cursor:pointer;
+  font-family:var(--body); display:inline-flex; align-items:center; line-height:1.2;
+}
+.navlinks .nav-item:hover{background:rgba(255,255,255,.12); color:#fff;}
+.navlinks .nav-item.active{background:rgba(255,255,255,.18); color:#fff;}
+.nav-actions{margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+.nav-status{display:flex; align-items:center; gap:8px; font-size:.78rem; color:#E2ECF7; font-weight:700; letter-spacing:.04em;}
+.nav-status .mono{color:#fff;}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--vert); box-shadow:0 0 0 3px rgba(255,255,255,.15);}
+.btn.nav-btn{background:rgba(255,255,255,.14); color:#fff; box-shadow:none; border:none; padding:7px 12px; font-size:.78rem; border-radius:8px;}
+.btn.nav-btn:hover{background:rgba(255,255,255,.24); transform:none; filter:none;}
+.btn.nav-btn.gold{background:var(--gold); color:#7C4A03;}
+.btn.nav-btn.gold:hover{background:#FFDD85;}
+
+/* ---------- En-tête de page ---------- */
+.main{min-width:0; max-width:1180px; margin:0 auto;}
+.pagehead{display:flex; align-items:baseline; gap:16px; margin:22px 22px 0; flex-wrap:wrap;}
+.pagehead h1{font-size:1.7rem; font-weight:800; color:var(--nuit);}
+.pagehead .tag{font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; color:var(--gris); font-weight:700;}
+.pagehead .today{margin-left:auto; font-size:.78rem; color:var(--gris);}
+
+.content{padding:18px 22px 80px;}
+.view{display:none;}
+.view.active{display:block; animation:retexfade .25s ease;}
+@keyframes retexfade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+
+.section-head h2{font-size:1.45rem; font-weight:800; color:var(--nuit);}
+.section-head .desc{font-size:.85rem; color:var(--gris); margin-top:3px;}
+.eyebrow{
+  font-family:var(--body); font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
+  color:#92400E; background:var(--amber-soft); border-radius:6px; font-weight:800;
+  padding:3px 9px; display:inline-block; margin-bottom:6px;
+}
+
+/* ---------- Cartes & KPI ---------- */
+.card{
+  background:#fff; border:1px solid var(--ligne); border-radius:var(--radius);
+  padding:20px 22px; box-shadow:var(--shadow);
+}
+.kpi-label{font-size:.72rem; color:var(--gris); text-transform:uppercase; letter-spacing:.08em; font-weight:700;}
+.kpi-value{font-family:var(--body); font-size:26px; font-weight:800; margin-top:6px; color:var(--nuit); letter-spacing:0;}
+.kpi-unit{font-size:.75rem; color:var(--ink-faint); font-weight:600; margin-left:3px;}
+.kpi-foot{font-size:.78rem; color:var(--gris); margin-top:6px;}
+
+.panel-title{font-size:1rem; font-weight:800; color:var(--nuit); margin-bottom:12px; display:flex; align-items:center; gap:8px;}
+.panel-title .n{
+  font-family:var(--body); color:#fff; background:var(--bleu); border-radius:6px;
+  font-size:.72rem; font-weight:800; padding:3px 8px; letter-spacing:.04em;
+}
+
+/* ---------- Badges (pastilles pleines, style RETEX) ---------- */
+.badge{
+  display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:999px;
+  font-size:.68rem; font-weight:800; letter-spacing:.04em; white-space:nowrap; color:#fff;
+}
+.badge::before{display:none;}
+.badge.sous-charge{background:var(--bleu); color:#fff;}
+.badge.zone-cible, .badge.cible, .badge.ok{background:var(--vert); color:#fff;}
+.badge.vigilance, .badge.surveillance{background:var(--ambre); color:#fff;}
+.badge.surcharge, .badge.risque, .badge.sla-en-risque, .badge.capacite-insuffisante{background:var(--rouge); color:#fff;}
+.badge.neutral{background:var(--gris); color:#fff;}
+
+/* ---------- Boutons ---------- */
+.btn{
+  border:none; background:#475569; color:#fff; padding:9px 16px; border-radius:10px;
+  font-size:.85rem; font-weight:700; display:inline-flex; align-items:center; gap:7px;
+  transition:.15s; cursor:pointer; box-shadow:0 2px 8px rgba(15,23,42,.15);
+}
+.btn:hover{transform:translateY(-1px); filter:brightness(1.07);}
+.btn:active{transform:none;}
+.btn.primary{background:var(--bleu);}
+.btn.accent{background:var(--retex);}
+.btn.ghost{background:#fff; color:var(--bleu-fonce); border:1.5px solid var(--ligne); box-shadow:none;}
+.btn.ghost:hover{border-color:var(--bleu); transform:none; filter:none;}
+.btn.small{padding:6px 12px; font-size:.78rem; border-radius:8px;}
+.toolbar .btn.small{background:var(--bleu);}
+
+/* ---------- Jauge de tension ---------- */
+.gauge-num{font-family:var(--body); font-size:30px; font-weight:800; color:var(--nuit); margin-top:-38px;}
+.gauge-lbl{font-size:.7rem; color:var(--gris); font-weight:700; text-transform:uppercase; letter-spacing:.08em;}
+
+/* ---------- Tableaux ---------- */
+.table-card{background:#fff; border:1px solid var(--ligne); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;}
+table.data th{
+  background:var(--nuit); color:#fff; font-size:.68rem; letter-spacing:.06em; text-transform:uppercase;
+  font-weight:700; padding:9px 10px; border-bottom:none; position:sticky; top:0;
+}
+table.data td{padding:5px 8px; border-bottom:1px solid var(--ligne); font-size:12.5px;}
+table.data tbody tr:hover{background:#F8FAFC;}
+table.data tfoot td{background:#F1F5F9; font-weight:700; border-top:2px solid var(--ligne); color:var(--nuit);}
+table.data input:focus, table.data select:focus{outline:none; border-color:var(--bleu); background:#fff; box-shadow:0 0 0 3px rgba(3,105,161,.12);}
+.computed{color:var(--ink-soft);}
+.rowlabel{color:var(--ink-faint);}
+.mat-toggle.on{background:var(--bleu); border-color:var(--bleu);}
+.row-del:hover{background:var(--red-soft); border-color:#FCA5A5; color:var(--rouge);}
+
+/* ---------- Sélecteur de ressources ---------- */
+.res-picker-btn{border:1.5px solid var(--ligne); background:#F8FAFC; color:var(--ink); font-size:.78rem;}
+.res-picker-btn:hover{border-color:var(--bleu); background:#fff;}
+.res-popover{border:1px solid var(--ligne); border-radius:12px; box-shadow:0 10px 30px rgba(2,6,23,.25);}
+.res-popover input[type=checkbox]{accent-color:var(--bleu);}
+
+/* ---------- Paramètres ---------- */
+.param-row{background:#fff; border:1px solid var(--ligne); border-radius:12px; padding:13px 15px; box-shadow:var(--shadow);}
+.param-row .p-name{font-size:.85rem; font-weight:700; color:var(--nuit);}
+.param-row .p-desc{font-size:.75rem; color:var(--gris);}
+.param-row input, .param-row select{
+  border:1.5px solid var(--ligne); border-radius:9px; background:#fff; padding:8px 10px;
+}
+.param-row input:focus, .param-row select:focus{outline:none; border-color:var(--bleu); box-shadow:0 0 0 3px rgba(3,105,161,.12);}
+
+.legend{font-size:.78rem;}
+.legend i{border-radius:3px;}
+.hint{font-size:.78rem; color:var(--gris);}
+
+/* ---------- Aide ---------- */
+.help-item{background:#fff; border:1px solid var(--ligne); border-radius:12px; box-shadow:var(--shadow);}
+.help-num{font-family:var(--body); font-weight:800; color:#fff; background:var(--bleu); border-radius:50%;}
+.gloss-item{border-radius:12px;}
+.gloss-item dt{font-family:var(--body); font-weight:800; font-size:.8rem; color:#fff; background:var(--bleu); border-radius:6px; padding:3px 9px;}
+table.formula td.f-formula{background:var(--accent-soft); color:var(--bleu-fonce); border-radius:6px;}
+
+/* ---------- Toast (bandeau bas, style RETEX) ---------- */
+.toast{
+  position:fixed; bottom:24px; left:50%; top:auto; right:auto; z-index:100;
+  transform:translateX(-50%) translateY(80px);
+  background:var(--nuit); color:#fff; padding:12px 22px; border-radius:12px; font-size:.9rem; font-weight:700;
+  box-shadow:0 10px 30px rgba(2,6,23,.4); opacity:0; pointer-events:none; transition:.3s;
+  max-width:90vw;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+.toast.error{background:var(--rouge);}
+
+/* ---------- Hero (Saisonnalité) & analyse ---------- */
+.ai-hero{
+  background:linear-gradient(160deg,var(--nuit) 0%,var(--bleu-fonce) 55%,var(--bleu) 100%); color:#EAF2FB;
+  border-radius:16px; padding:26px 28px; position:relative; overflow:hidden; box-shadow:var(--shadow);
+}
+.ai-hero::after{
+  content:""; position:absolute; right:-90px; top:-90px; width:280px; height:280px;
+  border-radius:50%; border:26px solid rgba(255,209,102,.16);
+}
+.ai-hero h3{color:#fff; font-size:1.05rem;}
+.ai-hero p{color:#DCECFB;}
+.ai-hero .btn{background:var(--gold); border:none; color:#7C4A03; position:relative; z-index:1;}
+.ai-hero .btn.ghost{background:transparent; color:#EAF2FB; border:1.5px solid rgba(255,255,255,.35); box-shadow:none;}
+.risk-card{border-radius:12px; background:#fff;}
+.ai-empty{color:var(--gris);}
+
+/* ---------- Impression ---------- */
+@media print{
+  .navbar, .nav-actions, .pagehead{display:none !important;}
+  body{background:#fff !important;}
+}
+</style>
+</head>
+<body>
+
+<!-- ======================= NAVBAR ======================= -->
+<nav class="navbar">
+  <span class="logo">PILOTAGE &amp; <b>RÉGULATION</b></span>
+  <span class="sep"></span>
+  <div class="navlinks" id="navMenu">
+    <button class="nav-item active" data-view="dashboard">Accueil</button>
+    <button class="nav-item" data-view="parametres">Paramètres</button>
+    <button class="nav-item" data-view="ressources">Ressources</button>
+    <button class="nav-item" data-view="flux">Flux</button>
+    <button class="nav-item" data-view="matrice">Matrice Flux</button>
+    <button class="nav-item" data-view="projets">Projets</button>
+    <button class="nav-item" data-view="activite">Activité</button>
+    <button class="nav-item" data-view="analyse">Analyse</button>
+    <button class="nav-item" data-view="saison">Saisonnalité</button>
+    <button class="nav-item" data-view="aide">Aide</button>
+  </div>
+  <div class="nav-actions">
+    <span class="nav-status"><span class="dot" id="sideDot"></span><span id="sideStatus" class="mono">—</span></span>
+    <span class="sep"></span>
+    <button class="btn nav-btn" id="btnExport">💾 JSON</button>
+    <button class="btn nav-btn" id="btnImport">📂 Import</button>
+    <input type="file" id="fileImport" accept="application/json" style="display:none">
+    <button class="btn nav-btn gold" id="btnReport">📄 Rapport Word</button>
+  </div>
+</nav>
+
+<!-- ======================= PAGE ======================= -->
+<div class="main">
+  <div class="pagehead">
+    <h1 id="pageTitle">Accueil · Dashboard</h1>
+    <span class="tag" id="pageSub">Vue consolidée de la charge, capacité et tension équipe</span>
+    <span class="today mono" id="todayLabel"></span>
+  </div>
+  <div id="toast" class="toast"></div>
+  <div id="resPopover" class="res-popover"></div>
+
+  <div class="content" id="content">
+
+      <!-- ============ DASHBOARD ============ -->
+      <section class="view active" id="view-dashboard">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Cockpit</span>
+            <h2>Indicateurs consolidés</h2>
+            <div class="desc">Capacité, charge et tension de l'équipe, recalculés en temps réel à partir des onglets Paramètres, Ressources, Flux et Projets.</div>
+          </div>
+        </div>
+
+        <div class="grid grid-4" id="kpiTop"></div>
+
+        <div style="height:14px"></div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="panel-title"><span class="n">A</span>Capacité &amp; charge de l'équipe</div>
+            <div class="grid grid-4" id="kpiCapa"></div>
+          </div>
+          <div class="card">
+            <div class="panel-title"><span class="n">B</span>Score de tension</div>
+            <div class="gauge-wrap">
+              <svg id="gaugeSvg" width="220" height="130" viewBox="0 0 220 130"></svg>
+              <div class="gauge-num" id="gaugeNum">0</div>
+              <div class="gauge-lbl">sur 100</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:14px"></div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="panel-title"><span class="n">C</span>Alertes prioritaires</div>
+            <div class="table-scroll">
+              <table class="data" style="min-width:auto">
+                <thead><tr><th>Type</th><th class="num">Nombre</th></tr></thead>
+                <tbody id="alertBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="panel-title"><span class="n">D</span>Calibrage ETP</div>
+            <div id="etpBlock" class="grid grid-3"></div>
+          </div>
+        </div>
+
+        <div style="height:14px"></div>
+        <div class="card">
+          <div class="panel-title"><span class="n">E</span>Masse salariale <span class="hint" style="font-weight:400">— sur la période affichée (Horizon courant)</span></div>
+          <div id="payrollBlock" class="grid grid-4"></div>
+          <p class="hint" style="margin:12px 0 0; line-height:1.5;">À savoir : le « Coût sous-utilisation individuelle » se calcule personne par personne et peut rester positif même si le Statut global est SURCHARGE — les deux mesurent des choses différentes. Ce cas signale souvent un déséquilibre de répartition (une personne débordée, une autre disponible) plutôt qu'un manque d'effectif global. Détail dans l'onglet Aide.</p>
+        </div>
+
+        <div style="height:14px"></div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="panel-title"><span class="n">F</span>Charge par ressource <span class="hint" style="font-weight:400">— Top 10</span></div>
+            <svg id="barResSvg" width="100%" height="360" viewBox="0 0 520 360" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Charge par ressource"></svg>
+            <div class="legend" id="barResLegend"></div>
+          </div>
+          <div class="card">
+            <div class="panel-title"><span class="n">G</span>Répartition de la charge</div>
+            <svg id="donutSvg" width="100%" height="300" viewBox="0 0 520 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Répartition de la charge"></svg>
+            <div class="legend" id="donutLegend"></div>
+          </div>
+        </div>
+
+        <div class="footer-note">Application Excel — Pilotage &amp; Régulation — reconstituée en application web, formules à l'identique.</div>
+      </section>
+
+      <!-- ============ PARAMÈTRES ============ -->
+      <section class="view" id="view-parametres">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Réglages</span>
+            <h2>Paramètres globaux</h2>
+            <div class="desc">Base de tous les calculs de capacité, seuils de tension et pondérations projets.</div>
+          </div>
+        </div>
+        <div class="param-grid" id="paramGrid"></div>
+
+        <div style="height:14px"></div>
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="panel-title"><span class="n">Σ</span>Capacité horaire dérivée</div>
+            <div class="grid grid-2">
+              <div><div class="kpi-label">Heures / ETP / période</div><div class="kpi-value mono" id="pHeuresETP">0</div></div>
+              <div><div class="kpi-label">Heures utiles / ETPT / période</div><div class="kpi-value mono" id="pHeuresETPT">0</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="panel-title"><span class="n">◔</span>Zones de charge</div>
+            <div class="legend" id="paramLegend"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ RESSOURCES ============ -->
+      <section class="view" id="view-ressources">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Équipe</span>
+            <h2>Ressources</h2>
+            <div class="desc">Capacité, charge projets, charge flux et statut individuel — calculés automatiquement.</div>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="btn small" id="btnAddRes">+ Ajouter une ressource</button>
+          <div class="spacer"></div>
+          <span class="hint">30 lignes disponibles — laissez le nom vide pour ignorer une ligne</span>
+        </div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table class="data" id="tblRessources">
+              <thead><tr>
+                <th>#</th><th>Nom</th><th>Rôle</th><th>Compétence</th><th>Niveau</th><th>Polyvalence</th><th>Criticité</th>
+                <th class="num">Absences (h)</th><th class="num">Récurrent (h)</th><th class="num">Taux dispo.</th>
+                <th class="num">Coût annuel chargé</th>
+                <th class="num">Cap. brute</th><th class="num">Cap. nette</th><th class="num">Cap. utile</th>
+                <th class="num">Charge projets</th><th class="num">Parts flux</th><th class="num">Charge totale</th>
+                <th class="num">Taux indiv.</th><th>Statut</th>
+                <th class="num">Coût horaire</th><th class="num">Coût sous-util. indiv.</th>
+                <th>Actions</th>
+              </tr></thead>
+              <tbody></tbody>
+              <tfoot><tr>
+                <td colspan="11">Totaux équipe</td>
+                <td class="num" id="resFootBrute">0</td>
+                <td class="num" id="resFootNette">0</td>
+                <td class="num" id="resFootUtile">0</td>
+                <td class="num" id="resFootProjets">0</td>
+                <td class="num" id="resFootFlux">0</td>
+                <td class="num" id="resFootTotale">0</td>
+                <td></td><td></td><td></td>
+                <td class="num" id="resFootCoutSousUtil">0</td>
+                <td></td>
+              </tr></tfoot>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FLUX ============ -->
+      <section class="view" id="view-flux">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Opérations</span>
+            <h2>Flux récurrents</h2>
+            <div class="desc">Volumes, AHT, backlog et respect de SLA par flux.</div>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="btn small" id="btnAddFlux">+ Ajouter un flux</button>
+          <div class="spacer"></div>
+          <span class="hint">20 lignes disponibles</span>
+        </div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table class="data" id="tblFlux">
+              <thead><tr>
+                <th>Type flux</th><th>Priorité</th><th class="num">Volume</th><th class="num">AHT min</th>
+                <th class="num">Backlog début</th><th class="num">Backlog fin cible</th><th class="num">SLA cible (j)</th>
+                <th class="num">Nb habilités</th><th class="num">Cap. habilitée</th><th class="num">Traitées</th>
+                <th class="num">Charge h</th><th class="num">Débit/j</th><th class="num">WIP moyen</th>
+                <th class="num">Lead time (j)</th><th class="num">Charge %</th><th class="num">SLA %</th><th>Alerte</th><th class="num">Coût</th><th>Actions</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ MATRICE FLUX ============ -->
+      <section class="view" id="view-matrice">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Habilitations</span>
+            <h2>Matrice Flux × Ressources</h2>
+            <div class="desc">Cliquez une pastille pour habiliter / retirer une ressource sur un flux. Seules les lignes et colonnes nommées s'affichent.</div>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table class="data" id="tblMatrice" style="min-width:600px">
+              <thead><tr id="matHeadRow"><th>Flux \ Ressource</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ PROJETS ============ -->
+      <section class="view" id="view-projets">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Portefeuille</span>
+            <h2>Projets</h2>
+            <div class="desc">Charge estimée / réalisée, échéances, allocation et risque par lot.</div>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="btn small" id="btnAddProj">+ Ajouter un lot projet</button>
+          <div class="spacer"></div>
+          <span class="hint">30 lignes disponibles</span>
+        </div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table class="data" id="tblProjets">
+              <thead><tr>
+                <th>Projet</th><th>Lot / Phase</th><th>Priorité</th><th>Compétence req.</th>
+                <th class="num">Charge estimée</th><th class="num">Charge réalisée</th><th class="num">Charge restante</th>
+                <th>Échéance</th><th class="num">Jours restants</th><th class="num">Allocation période</th>
+                <th>Ressources assignées</th><th>Statut risque</th><th class="num">Coût</th><th>Actions</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ACTIVITÉ À RATIO STANDARD ============ -->
+      <section class="view" id="view-activite">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Charge par ratio</span>
+            <h2>Activité (ratio standard)</h2>
+            <div class="desc">Pour les activités dont la charge se calcule par un ratio d'effectif standard plutôt que par un flux transactionnel — ex. 1 agent pour 30 km de voirie, 1 agent pour 1 500 m² de locaux à entretenir. Saisissez la quantité et le ratio norme (unité par agent) : la charge et la comparaison au ratio actuellement observé se calculent automatiquement.</div>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="btn small" id="btnAddActivite">+ Ajouter une activité</button>
+          <div class="spacer"></div>
+          <span class="hint">12 lignes disponibles</span>
+        </div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table class="data" id="tblActivite">
+              <thead><tr>
+                <th>Activité</th><th>Unité</th><th class="num">Quantité</th><th class="num">Ratio norme (unité/agent)</th>
+                <th class="num">Norme horaire (h/unité)</th><th class="num">ETP normatif</th><th class="num">Charge période</th>
+                <th class="num">Nb habilités</th><th class="num">Cap. habilitée</th><th class="num">Charge %</th><th>Alerte</th>
+                <th class="num">Ratio actuel</th><th class="num">Écart vs norme</th>
+                <th class="num">Coût</th><th>Actions</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="height:16px"></div>
+        <div class="panel-title"><span class="n">◧</span>Matrice Activité × Ressources <span class="hint" style="font-weight:400">— qui est habilité sur quelle activité</span></div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table class="data" id="tblMatriceActivite" style="min-width:600px">
+              <thead><tr id="matActiviteHeadRow"><th>Activité \ Ressource</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ANALYSE IA ============ -->
+      <section class="view" id="view-analyse">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Intelligence</span>
+            <h2>Analyse &amp; recommandations</h2>
+            <div class="desc">Une analyse automatique (synthèse, risques, recommandations) est générée en continu à partir des données actuelles, sans appel réseau ni service externe — vos données restent dans votre navigateur.</div>
+          </div>
+        </div>
+
+        <div class="panel-title"><span class="n">◆</span>Analyse automatique <span class="hint" style="font-weight:400">— toujours à jour, fonctionne hors ligne</span></div>
+        <div id="autoResult"></div>
+      </section>
+
+      <!-- ============ SAISONNALITÉ ============ -->
+      <section class="view" id="view-saison">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Tendances</span>
+            <h2>Saisonnalité &amp; évolution</h2>
+            <div class="desc">Importez plusieurs sauvegardes JSON (une par mois par exemple) pour visualiser l'évolution de la charge, de la capacité et de la tension dans le temps, avec une analyse automatique.</div>
+          </div>
+        </div>
+
+        <div class="ai-hero">
+          <div>
+            <h3>Importer des sauvegardes à comparer</h3>
+            <p>Sélectionnez un ou plusieurs fichiers .json précédemment exportés depuis « Exporter (JSON) ». La période « Actuel » (données en cours dans l'application) est ajoutée automatiquement à la comparaison.</p>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn" id="btnSeasonImport">📂 Importer des JSON</button>
+            <input type="file" id="seasonFileInput" accept="application/json" multiple style="display:none">
+            <button class="btn ghost" id="btnSeasonClear">Effacer les périodes importées</button>
+          </div>
+        </div>
+
+        <div style="height:16px"></div>
+        <div id="seasonEmpty" class="ai-empty">Importez au moins une sauvegarde JSON pour afficher les tendances (la période « Actuel » seule ne permet pas de tracer une évolution).</div>
+
+        <div id="seasonContent" style="display:none">
+          <div class="table-card" style="margin-bottom:16px">
+            <div class="table-scroll">
+              <table class="data" id="tblSeason" style="min-width:760px">
+                <thead><tr>
+                  <th>Période</th><th class="num">Cap. utile (h)</th><th class="num">Charge totale (h)</th>
+                  <th class="num">Taux de charge</th><th class="num">Score tension</th><th>Statut</th>
+                  <th class="num">ETP requis</th><th class="num">SLA moyen</th>
+                  <th class="num">Masse salariale</th><th class="num">Coût sous-util. indiv.</th><th class="num">Coût besoin ETP</th>
+                  <th>Actions</th>
+                </tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="grid grid-2" id="seasonCharts"></div>
+
+          <div style="height:14px"></div>
+          <div class="card">
+            <div class="panel-title"><span class="n">◆</span>Analyse automatique</div>
+            <div id="seasonAutoAnalysis" class="ai-synth"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ AIDE ============ -->
+      <section class="view" id="view-aide">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Guide</span>
+            <h2>Mode d'emploi</h2>
+            <div class="desc">Ordre recommandé de saisie et de pilotage.</div>
+          </div>
+        </div>
+        <div class="help-list" id="helpList"></div>
+
+        <div class="aide-section">
+          <div class="aide-section-head">
+            <h3>Glossaire</h3>
+            <div class="desc">Définition de tous les termes et sigles utilisés dans l'outil.</div>
+          </div>
+          <dl class="glossary-grid" id="glossaryGrid"></dl>
+        </div>
+
+        <div class="aide-section">
+          <div class="aide-section-head">
+            <h3>Méthodes de calcul</h3>
+            <div class="desc">Détail de toutes les formules appliquées, onglet par onglet.</div>
+          </div>
+          <div id="formulasArea"></div>
+        </div>
+      </section>
+
+    </div>
+</div>
+
+<script>
+/* =====================================================================
+   DATA MODEL
+===================================================================== */
+const N_RES = 30, N_FLUX = 20, N_PROJ = 30, N_ACTIVITE = 12;
+
+const params = {
+  modePilotage:'Hybride', horizon:'Mois',
+  joursOuvres:20.22, heuresJour:7.5,
+  seuilSousCharge:0.6, seuilVertHaut:0.85, seuilAmbre:0.95,
+  wipMax:5, tauxCible:0.8, marge:0.1, shrinkage:0.15, slaCible:0.9,
+  joursOuvresAnnuels:242.64, devise:'€',
+};
+
+function blankRes(){ return {nom:'',role:'',competence:'',niveau:'',polyvalence:'',criticite:'',absences:'',recurrent:'',tauxDispo:'',coutAnnuel:''}; }
+function blankFlux(){ return {type:'',priorite:'',volume:'',aht:'',backlogDebut:'',backlogFin:'',slaCible:''}; }
+function blankProj(){ return {projet:'',lot:'',priorite:'',competence:'',estimee:'',realisee:'',echeance:'',allocation:'',ressources:[]}; }
+function blankActivite(){ return {nom:'',unite:'',quantite:'',ratio:''}; }
+
+const resources = Array.from({length:N_RES}, blankRes);
+const flux = Array.from({length:N_FLUX}, blankFlux);
+const projets = Array.from({length:N_PROJ}, blankProj);
+const activites = Array.from({length:N_ACTIVITE}, blankActivite);
+// matrix[fluxIndex][resIndex] = true/false
+const matrix = Array.from({length:N_FLUX}, ()=>Array(N_RES).fill(false));
+// matrixActivite[activiteIndex][resIndex] = true/false
+const matrixActivite = Array.from({length:N_ACTIVITE}, ()=>Array(N_RES).fill(false));
+
+/* =====================================================================
+   HELPERS
+===================================================================== */
+const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
+const fmt = (v,d=1) => isFinite(v) ? v.toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d}) : '—';
+const fmtPct = (v,d=0) => isFinite(v) ? (v*100).toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d})+' %' : '—';
+const fmtMoney = (v,d=0) => isFinite(v) ? v.toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d})+' '+(params.devise||'€') : '—';
+const slug = s => (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+
+function classify(ratio, p){
+  if(!isFinite(ratio)) return '';
+  if(ratio < p.seuilSousCharge) return 'SOUS-CHARGE';
+  if(ratio < p.seuilVertHaut) return 'ZONE CIBLE';
+  if(ratio < p.seuilAmbre) return 'VIGILANCE';
+  if(ratio > p.seuilAmbre) return 'SURCHARGE';
+  if(ratio >= p.seuilSousCharge && ratio <= p.seuilVertHaut) return 'CIBLE';
+  return '';
+}
+function badgeHtml(text){
+  if(!text) return '<span class="badge neutral">—</span>';
+  return `<span class="badge ${slug(text)}">${text}</span>`;
+}
+
+/* =====================================================================
+   CALCULATION ENGINE  (mirrors the original Excel formulas)
+===================================================================== */
+const DB = { heuresETP:0, heuresETPT:0, res:[], flux:[], proj:[], activites:[], dash:{} };
+
+/* Pure calculation engine: takes a full dataset (params/resources/flux/projets/matrix)
+   and returns the computed result, WITHOUT touching the live app's global state or DB.
+   Used both by recalc() (for the live app) and by the Saisonnalité tab (to analyze
+   imported historical snapshots side-by-side with the current data). */
+function computeAll(P, RES, FLX, PRJ, MAT, ACT, MATA){
+  ACT = ACT || []; MATA = MATA || [];
+  const heuresETP = P.joursOuvres * P.heuresJour;
+  const heuresETPT = heuresETP * (1-P.shrinkage) * (1-P.marge);
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // Référence ANNUELLE stable pour convertir un coût annuel chargé en coût horaire —
+  // volontairement indépendante de l'Horizon courant (Semaine/Mois/Trimestre), pour que le
+  // coût horaire d'une personne ne varie jamais selon l'onglet Paramètres du moment.
+  const heuresETPAnnuel = P.joursOuvresAnnuels * P.heuresJour;
+  const coutHoraireArr = RES.map(row=>{
+    const coutAnnuel = num(row.coutAnnuel);
+    const capaciteBruteAnnuelle = heuresETPAnnuel * num(row.tauxDispo);
+    return (coutAnnuel>0 && capaciteBruteAnnuelle>0) ? coutAnnuel/capaciteBruteAnnuelle : 0;
+  });
+  const coutHoraireByName = {};
+  RES.forEach((r,i)=>{ if(r.nom) coutHoraireByName[r.nom] = coutHoraireArr[i]; });
+
+  /* ---- Projets pass ---- */
+  const proj = PRJ.map(row=>{
+    const estimee = num(row.estimee), realisee = num(row.realisee), alloc = num(row.allocation);
+    const chargeRestante = Math.max(0, estimee-realisee);
+    let joursRestants = null;
+    if(row.echeance){
+      const d = new Date(row.echeance+'T00:00:00');
+      joursRestants = Math.round((d-today)/86400000);
+    }
+    const ressources = Array.isArray(row.ressources) ? row.ressources.filter(Boolean) : (row.ressources ? [row.ressources] : []);
+    // Quand plusieurs personnes sont assignées, chacune porte une part égale de la charge du
+    // projet — la charge totale du projet ne change pas, elle est simplement répartie entre elles
+    // (sinon la charge globale de l'équipe serait comptée en double à chaque ressource ajoutée).
+    // La priorité (P1-P4) reste purement indicative et n'a aucun effet sur ce calcul.
+    const chargePerRessource = ressources.length ? alloc/ressources.length : 0;
+    // Coût du projet = somme, pour chaque ressource assignée, de sa part de charge × son coût horaire.
+    const coutProjet = ressources.reduce((s,n)=> s + chargePerRessource*(coutHoraireByName[n]||0), 0);
+    let statut = '';
+    if(row.projet){
+      statut = (joursRestants!==null && joursRestants<14 && chargeRestante>alloc) ? 'RISQUE' : 'OK';
+    }
+    return {...row, ressources, chargeRestante, joursRestants, chargePerRessource, coutProjet, statut};
+  });
+
+  /* ---- Ressources pass 1 (capacity + charge projets) ---- */
+  let res = RES.map((row,ri)=>{
+    const tauxDispo = num(row.tauxDispo);
+    const absences = num(row.absences), recurrent = num(row.recurrent);
+    const capaciteBrute = heuresETP*tauxDispo;
+    const capaciteNette = Math.max(0, capaciteBrute-absences-recurrent);
+    const capaciteUtile = capaciteNette*(1-(P.shrinkage+P.marge));
+    const chargeProjets = row.nom ? proj.reduce((s,pr)=> s + (pr.ressources.includes(row.nom) ? pr.chargePerRessource : 0), 0) : 0;
+    const coutHoraire = coutHoraireArr[ri];
+    const coutPeriode = coutHoraire*capaciteBrute; // coût de sa capacité sur la période affichée
+    return {...row, capaciteBrute, capaciteNette, capaciteUtile, chargeProjets, coutHoraire, coutPeriode};
+  });
+
+  /* ---- Flux pass (needs Ressources.capaciteUtile) ---- */
+  const flx = FLX.map((row,fi)=>{
+    const volume=num(row.volume), aht=num(row.aht), bd=num(row.backlogDebut), bf=num(row.backlogFin), slaJ=num(row.slaCible);
+    let nbHabilites=0, capHabilitee=0, coutPondereSum=0;
+    (MAT[fi]||[]).forEach((on,ri)=>{ if(on && res[ri]){ nbHabilites++; capHabilitee += res[ri].capaciteUtile; coutPondereSum += res[ri].capaciteUtile*res[ri].coutHoraire; } });
+    // Traitées ne peut pas être négatif : si le backlog cible en fin de période est fixé plus
+    // haut que ce qui est réellement disponible à traiter (début + volume entrant), cela signifie
+    // qu'aucun traitement actif n'est requis ce mois-ci (le retard est simplement toléré), pas un
+    // volume "négatif" de dossiers traités.
+    const traitees = Math.max(0, volume+bd-bf);
+    const chargeH = (traitees*aht)/60;
+    const debitJour = P.joursOuvres ? traitees/P.joursOuvres : 0;
+    const wipMoyen = (bd+bf)/2;
+    const leadTime = debitJour ? wipMoyen/debitJour : 0;
+    // Si la capacité habilitée est nulle (ex. la seule ressource habilitée a un taux de
+    // disponibilité à 0) alors qu'il y a pourtant de la charge à traiter, ce n'est PAS un
+    // niveau de charge de 0 % : c'est une surcharge extrême (capacité réellement mobilisable
+    // nulle). On utilise une valeur sentinelle élevée (999 %) pour que l'alerte le détecte.
+    const niveauCharge = capHabilitee>0 ? chargeH/capHabilitee : (chargeH>0 ? 9.99 : 0);
+    const indiceSLA = Math.max(0, Math.min(1, (slaJ*debitJour)/(wipMoyen+0.001)) * Math.min(1, 1/Math.max(niveauCharge,0.001)));
+    let alerte;
+    if(nbHabilites===0) alerte='Aucune ressource';
+    else if(niveauCharge>1) alerte='Capacité insuffisante';
+    else if(indiceSLA<0.95) alerte='SLA en risque';
+    else if(indiceSLA<0.98) alerte='Surveillance';
+    else alerte='OK';
+    if(!row.type) alerte = nbHabilites===0 ? '' : alerte;
+    // Coût du flux = charge (h) × coût horaire moyen, pondéré par la capacité utile de chacune
+    // des ressources habilitées (une personne avec plus de capacité pèse plus dans la moyenne).
+    const coutHoraireMoyen = capHabilitee>0 ? coutPondereSum/capHabilitee : 0;
+    const coutFlux = chargeH*coutHoraireMoyen;
+    return {...row, nbHabilites, capHabilitee, traitees, chargeH, debitJour, wipMoyen, leadTime, niveauCharge, indiceSLA, coutHoraireMoyen, coutFlux, alerte: row.type? alerte : ''};
+  });
+
+  /* ---- Activité à ratio standard (charge calculée à partir d'un ratio agent/unité, pas d'un flux) ----
+     Pour les activités dont la charge se rapporte à une norme d'effectif standard plutôt qu'à un
+     volume qui arrive (ex. 1 agent pour 30 km de voirie, 1 agent pour 1 500 m² de locaux à entretenir),
+     plutôt que pour un flux transactionnel classique. Le ratio se saisit tel qu'il se dit sur le
+     terrain (« combien d'unités par agent »), la norme horaire s'en déduit automatiquement. */
+  const act = ACT.map((row,pi)=>{
+    const quantite = num(row.quantite), ratio = num(row.ratio);
+    let nbHabilites=0, capHabilitee=0, coutPondereSum=0;
+    (MATA[pi]||[]).forEach((on,ri)=>{ if(on && res[ri]){ nbHabilites++; capHabilitee += res[ri].capaciteUtile; coutPondereSum += res[ri].capaciteUtile*res[ri].coutHoraire; } });
+    // ETP normatif = quantité ÷ ratio (ex. 60 km ÷ 30 km/agent = 2 ETP nécessaires selon la norme).
+    // Charge (h, période) = ETP normatif × Heures ETP de la période courante — reprend directement
+    // la même référence "Heures ETP" que tout le reste du modèle, donc s'ajuste automatiquement à
+    // l'Horizon choisi dans Paramètres, sans étape de conversion supplémentaire.
+    const etpNormatif = ratio>0 ? quantite/ratio : 0;
+    const chargeH = etpNormatif*heuresETP;
+    // Norme horaire équivalente (h/unité, période) — purement informative, pour transparence.
+    const normeHoraire = ratio>0 ? heuresETP/ratio : 0;
+    const niveauCharge = capHabilitee>0 ? chargeH/capHabilitee : (chargeH>0 ? 9.99 : 0);
+    let alerte;
+    if(nbHabilites===0) alerte='Aucune ressource';
+    else if(niveauCharge>1) alerte='Capacité insuffisante';
+    else if(niveauCharge>=P.seuilAmbre) alerte='Vigilance';
+    else alerte='OK';
+    if(!row.nom) alerte = nbHabilites===0 ? '' : alerte;
+    const coutHoraireMoyen = capHabilitee>0 ? coutPondereSum/capHabilitee : 0;
+    const coutActivite = chargeH*coutHoraireMoyen;
+    // Ratio actuel (observé) : quantité ÷ ETP réellement habilités — comparable directement au
+    // ratio norme puisque celui-ci est désormais saisi tel quel (ex. « vous êtes à 1 agent pour
+    // 45 km, la norme est à 1 agent pour 30 km »).
+    const etpHabilites = heuresETP>0 ? capHabilitee/heuresETP : 0;
+    const ratioActuel = etpHabilites>0 ? quantite/etpHabilites : 0;
+    const ratioNorme = ratio;
+    const ecartVsNorme = ratioNorme>0 ? (ratioActuel-ratioNorme)/ratioNorme : 0;
+    return {...row, nbHabilites, capHabilitee, etpNormatif, chargeH, normeHoraire, niveauCharge, alerte: row.nom? alerte : '',
+            coutHoraireMoyen, coutActivite, etpHabilites, ratioActuel, ratioNorme, ecartVsNorme};
+  });
+
+  /* ---- Ressources pass 2 (parts flux + statut + coûts liés à la charge) ---- */
+  res = res.map((row,ri)=>{
+    let partsFlux = 0;
+    MAT.forEach((rowArr,fi)=>{
+      if(rowArr[ri] && flx[fi].capHabilitee>0){ partsFlux += row.capaciteUtile*(flx[fi].chargeH/flx[fi].capHabilitee); }
+    });
+    let partsActivite = 0;
+    MATA.forEach((rowArr,pi)=>{
+      if(rowArr[ri] && act[pi] && act[pi].capHabilitee>0){ partsActivite += row.capaciteUtile*(act[pi].chargeH/act[pi].capHabilitee); }
+    });
+    const chargeTotale = row.chargeProjets+partsFlux+partsActivite;
+    const tauxIndiv = row.capaciteUtile>0 ? chargeTotale/row.capaciteUtile : 0;
+    const statut = row.nom ? classify(tauxIndiv,P) : '';
+    // Coût de la charge réellement portée, et coût de la capacité utile jamais consommée
+    // (temps payé mais non utilisé sur cette ressource — signal direct de sous-utilisation).
+    const coutChargeTotale = row.coutHoraire*chargeTotale;
+    const coutSousUtilisation = row.coutHoraire*Math.max(0, row.capaciteUtile-chargeTotale);
+    return {...row, partsFlux, partsActivite, chargeTotale, tauxIndiv, statut, coutChargeTotale, coutSousUtilisation};
+  });
+
+  /* ---- Dashboard aggregates ---- */
+  const capaciteTotaleBrute = res.reduce((s,r)=>s+r.capaciteBrute,0);
+  const capaciteUtileEquipe = res.reduce((s,r)=>s+r.capaciteUtile,0);
+  const chargeFlux = flx.reduce((s,f)=>s+f.chargeH,0);
+  const chargeProjetsTotal = proj.reduce((s,pr)=>s+num(pr.allocation),0);
+  const chargeActivite = act.reduce((s,p)=>s+p.chargeH,0);
+  const chargeTotale = chargeFlux+chargeProjetsTotal+chargeActivite;
+  const tauxChargeEquipe = capaciteUtileEquipe>0 ? chargeTotale/capaciteUtileEquipe : (chargeTotale>0 ? 2 : 0);
+  const ratioCapCharge = chargeTotale ? capaciteUtileEquipe/chargeTotale : 0;
+  const slaVals = flx.filter(f=>f.type && f.indiceSLA>0).map(f=>f.indiceSLA);
+  const respectSLAmoyen = slaVals.length ? slaVals.reduce((a,b)=>a+b,0)/slaVals.length : 0;
+  const fluxSansRessource = flx.filter(f=>f.type && f.alerte==='Aucune ressource').length;
+  const fluxCapaciteInsuffisante = flx.filter(f=>f.type && f.alerte==='Capacité insuffisante').length;
+  const fluxSLARisque = flx.filter(f=>f.type && f.alerte==='SLA en risque').length;
+  const projetsRisque = proj.filter(pr=>pr.statut==='RISQUE').length;
+  const activiteSansRessource = act.filter(p=>p.nom && p.alerte==='Aucune ressource').length;
+  const activiteCapaciteInsuffisante = act.filter(p=>p.nom && p.alerte==='Capacité insuffisante').length;
+  const besoinETP = heuresETP ? chargeTotale/heuresETP : 0;
+  const scoreTension = Math.min(100, Math.max(0, Math.round(tauxChargeEquipe*60 + (fluxCapaciteInsuffisante+activiteCapaciteInsuffisante)*10 + projetsRisque*15)));
+  const statutGlobal = classify(tauxChargeEquipe,P);
+  const nbPersonnes = res.filter(r=>r.nom).length;
+
+  // ---- Masse salariale ----
+  const masseSalarialePeriode = res.reduce((s,r)=>s+r.coutPeriode,0);
+  const coutSousUtilisationTotal = res.reduce((s,r)=>s+r.coutSousUtilisation,0);
+  const coutHoraireMoyenEquipe = capaciteUtileEquipe>0 ? res.reduce((s,r)=>s+r.coutHoraire*r.capaciteUtile,0)/capaciteUtileEquipe : 0;
+  const etpGapPeriode = Math.max(0, besoinETP - (heuresETP? capaciteTotaleBrute/heuresETP : 0));
+  const coutBesoinETP = etpGapPeriode*heuresETP*coutHoraireMoyenEquipe;
+
+  const dash = {
+    capaciteTotaleBrute, capaciteUtileEquipe, chargeFlux, chargeProjetsTotal, chargeActivite, chargeTotale,
+    tauxChargeEquipe, ratioCapCharge, respectSLAmoyen, fluxSansRessource, fluxCapaciteInsuffisante, fluxSLARisque,
+    projetsRisque, activiteSansRessource, activiteCapaciteInsuffisante, besoinETP, scoreTension, statutGlobal, nbPersonnes,
+    ETPrequis: besoinETP, ETPTrequis: heuresETPT ? chargeTotale/heuresETPT : 0,
+    ETPTequipe: heuresETP ? capaciteTotaleBrute/heuresETP : 0,
+    ETPTutile: heuresETP ? capaciteUtileEquipe/heuresETP : 0,
+    ETPactuel: heuresETP ? capaciteTotaleBrute/heuresETP : 0,
+    ETPTactuel: heuresETP ? capaciteUtileEquipe/heuresETP : 0,
+    masseSalarialePeriode, coutSousUtilisationTotal, coutHoraireMoyenEquipe, coutBesoinETP,
+  };
+
+  return { heuresETP, heuresETPT, heuresETPAnnuel, res, flux:flx, proj, activites:act, dash };
+}
+
+function recalc(){
+  const result = computeAll(params, resources, flux, projets, matrix, activites, matrixActivite);
+  DB.heuresETP = result.heuresETP;
+  DB.heuresETPT = result.heuresETPT;
+  DB.res = result.res;
+  DB.flux = result.flux;
+  DB.proj = result.proj;
+  DB.activites = result.activites;
+  DB.dash = result.dash;
+}
+
+/* =====================================================================
+   RENDER — built once, then live-updated
+===================================================================== */
+function el(tag, attrs={}, html){ const e=document.createElement(tag); Object.entries(attrs).forEach(([k,v])=>{ if(k==='class') e.className=v; else e.setAttribute(k,v); }); if(html!==undefined) e.innerHTML=html; return e; }
+
+/* ---------- PARAMÈTRES ---------- */
+const paramDefs = [
+  ['modePilotage','Mode de pilotage','Flux / Projets / Hybride','select',['Flux','Projets','Hybride']],
+  ['horizon','Horizon','Période de pilotage — met à jour "Jours ouvrés" ci-dessous en conséquence','select',['Semaine','Mois','Trimestre','Semestre','Année']],
+  ['joursOuvres','Jours ouvrés','Nb de jours ouvrés sur la période choisie — base de tous les calculs (débit/jour, capacité...)','number'],
+  ['heuresJour','Heures par jour','Base de calcul capacité','number'],
+  ['seuilSousCharge','Seuil sous-charge','Statut bleu','pct'],
+  ['seuilVertHaut','Seuil vert haut',"Zone cible jusqu'à ce seuil",'pct'],
+  ['seuilAmbre','Seuil ambre/surcharge','Au-delà = surcharge','pct'],
+  ['wipMax','WIP max / personne','Limite WIP indicative','number'],
+  ['tauxCible','Taux occupation cible','Cible de pilotage','pct'],
+  ['marge','Marge de sécurité',"Marge absorbant l'incertitude",'pct'],
+  ['shrinkage','Shrinkage','Perte de capacité','pct'],
+  ['slaCible','SLA cible global','Objectif de SLA consolidé','pct'],
+  ['joursOuvresAnnuels','Jours ouvrés annuels (référence coût)',"Fixe, indépendant de l'Horizon — sert uniquement à convertir le coût annuel chargé de chaque personne en coût horaire",'number'],
+  ['devise','Devise','Symbole utilisé pour tous les montants affichés','text'],
+];
+const HORIZON_JOURS_OUVRES = { 'Semaine': 4.65, 'Mois': 20.22, 'Trimestre': 60.66 };
+function buildParams(){
+  const grid = document.getElementById('paramGrid');
+  paramDefs.forEach(([key,label,desc,type,opts])=>{
+    const row = el('div',{class:'param-row'});
+    const left = el('div',{class:'p-l'}, `<div class="p-name">${label}</div><div class="p-desc">${desc}</div>`);
+    let input;
+    if(type==='select'){
+      input = el('select',{'data-key':key});
+      opts.forEach(o=>input.appendChild(el('option',{value:o},o)));
+      input.value = params[key];
+    } else if(type==='pct'){
+      input = el('input',{type:'number', step:'0.01', 'data-key':key, 'data-pct':'1'});
+      input.value = params[key];
+    } else if(type==='text'){
+      input = el('input',{type:'text', 'data-key':key, 'data-text':'1'});
+      input.value = params[key];
+    } else {
+      input = el('input',{type:'number', step:'0.01', 'data-key':key});
+      input.value = params[key];
+    }
+    input.addEventListener('input', e=>{
+      const isTextField = e.target.dataset.text==='1';
+      const v = (e.target.tagName==='SELECT' || isTextField) ? e.target.value : parseFloat(e.target.value);
+      params[key] = (e.target.tagName==='SELECT' || isTextField) ? v : (isFinite(v)?v:0);
+      if(key==='horizon'){
+        // L'Horizon pilote désormais réellement les calculs : il met à jour "Jours ouvrés"
+        // (base de tous les calculs de débit/jour, capacité, etc.) pour correspondre à la
+        // période choisie. Vous pouvez ensuite l'ajuster manuellement si besoin.
+        // "Année" et "Semestre" reprennent directement (en entier ou en moitié) la référence
+        // "Jours ouvrés annuels" (utilisée aussi pour convertir le coût annuel chargé en coût
+        // horaire), pour que les deux valeurs restent toujours cohérentes entre elles.
+        const joursCible = v==='Année' ? params.joursOuvresAnnuels
+          : v==='Semestre' ? params.joursOuvresAnnuels/2
+          : HORIZON_JOURS_OUVRES[v];
+        if(joursCible!==undefined){
+          params.joursOuvres = joursCible;
+          refreshParamInputs();
+          showToast(`Jours ouvrés mis à jour (${fmt(params.joursOuvres,2)}) pour correspondre à l'horizon « ${v} »`);
+        }
+      }
+      recalc(); refresh();
+    });
+    const inWrap = el('div',{class:'p-in'}); inWrap.appendChild(input);
+    row.appendChild(left); row.appendChild(inWrap);
+    grid.appendChild(row);
+  });
+  document.getElementById('paramLegend').innerHTML = `
+    <span><i style="background:var(--blue)"></i>Sous-charge</span>
+    <span><i style="background:var(--green)"></i>Zone cible</span>
+    <span><i style="background:var(--amber)"></i>Vigilance</span>
+    <span><i style="background:var(--red)"></i>Surcharge</span>`;
+}
+
+/* ---------- RESSOURCES ---------- */
+const resSelects = {
+  niveau:['','Junior','Confirmé','Senior','Expert'],
+  polyvalence:['','Faible','Moyenne','Élevée'],
+  criticite:['','Faible','Moyenne','Élevée'],
+};
+function resSelectHtml(field,val){
+  const opts = resSelects[field].map(o=>`<option value="${o}" ${o===val?'selected':''}>${o||'—'}</option>`).join('');
+  return `<select data-f="${field}">${opts}</select>`;
+}
+function renderResourceRows(){
+  const tbody = document.querySelector('#tblRessources tbody');
+  tbody.innerHTML = '';
+  resources.forEach((row,i)=>{
+    const tr = el('tr',{'data-i':i});
+    tr.innerHTML = `
+      <td class="rowlabel">${i+1}</td>
+      <td><input data-f="nom" value="${row.nom}" placeholder="Nom"></td>
+      <td><input data-f="role" value="${row.role}" placeholder="Rôle"></td>
+      <td><input data-f="competence" value="${row.competence}" placeholder="Compétence"></td>
+      <td>${resSelectHtml('niveau',row.niveau)}</td>
+      <td>${resSelectHtml('polyvalence',row.polyvalence)}</td>
+      <td>${resSelectHtml('criticite',row.criticite)}</td>
+      <td class="num"><input class="num" type="number" data-f="absences" value="${row.absences}"></td>
+      <td class="num"><input class="num" type="number" data-f="recurrent" value="${row.recurrent}"></td>
+      <td class="num"><input class="num" type="number" step="0.01" data-f="tauxDispo" value="${row.tauxDispo}"></td>
+      <td class="num"><input class="num" type="number" step="100" data-f="coutAnnuel" value="${row.coutAnnuel}" placeholder="ex. 42000"></td>
+      <td class="num computed" id="r-capaciteBrute-${i}">0</td>
+      <td class="num computed" id="r-capaciteNette-${i}">0</td>
+      <td class="num computed" id="r-capaciteUtile-${i}">0</td>
+      <td class="num computed" id="r-chargeProjets-${i}">0</td>
+      <td class="num computed" id="r-partsFlux-${i}">0</td>
+      <td class="num computed" id="r-chargeTotale-${i}">0</td>
+      <td class="num computed" id="r-tauxIndiv-${i}">0</td>
+      <td id="r-statut-${i}"></td>
+      <td class="num computed" id="r-coutHoraire-${i}">0</td>
+      <td class="num computed" id="r-coutSousUtil-${i}">0</td>
+      <td><button type="button" class="row-del" data-del="res" data-i="${i}" title="Supprimer cette ressource">🗑</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+function buildRessources(){
+  renderResourceRows();
+  const tbody = document.querySelector('#tblRessources tbody');
+  tbody.addEventListener('input', e=>{
+    const tr = e.target.closest('tr'); if(!tr) return;
+    const i = +tr.dataset.i, f = e.target.dataset.f; if(!f) return;
+    resources[i][f] = e.target.value;
+    recalc(); refresh();
+    if(f==='nom'){ rebuildMatrixHeaders(); rebuildMatrixActiviteHeaders(); rebuildProjRessourceOptions(); }
+  });
+  tbody.addEventListener('click', e=>{
+    const btn = e.target.closest('[data-del="res"]'); if(!btn) return;
+    const i = +btn.dataset.i;
+    const label = resources[i].nom ? `« ${resources[i].nom} »` : 'cette ligne vide';
+    if(!confirm(`Supprimer la ressource ${label} ?`)) return;
+    deleteResource(i);
+  });
+  document.getElementById('btnAddRes').addEventListener('click', ()=> focusFirstEmptyRow('tblRessources','nom'));
+}
+function deleteResource(i){
+  resources.splice(i,1); resources.push(blankRes());
+  matrix.forEach(row=>{ row.splice(i,1); row.push(false); });
+  matrixActivite.forEach(row=>{ row.splice(i,1); row.push(false); });
+  renderResourceRows(); rebuildMatrixHeaders(); rebuildMatrixActiviteHeaders(); rebuildProjRessourceOptions();
+  recalc(); refresh();
+  showToast('Ressource supprimée');
+}
+
+/* ---------- FLUX ---------- */
+function renderFluxRows(){
+  const tbody = document.querySelector('#tblFlux tbody');
+  tbody.innerHTML = '';
+  flux.forEach((row,i)=>{
+    const tr = el('tr',{'data-i':i});
+    tr.innerHTML = `
+      <td><input data-f="type" value="${row.type}" placeholder="Type flux"></td>
+      <td><input data-f="priorite" value="${row.priorite}" placeholder="Priorité"></td>
+      <td class="num"><input class="num" type="number" data-f="volume" value="${row.volume}"></td>
+      <td class="num"><input class="num" type="number" data-f="aht" value="${row.aht}"></td>
+      <td class="num"><input class="num" type="number" data-f="backlogDebut" value="${row.backlogDebut}"></td>
+      <td class="num"><input class="num" type="number" data-f="backlogFin" value="${row.backlogFin}"></td>
+      <td class="num"><input class="num" type="number" step="0.1" data-f="slaCible" value="${row.slaCible}"></td>
+      <td class="num computed" id="f-nbHabilites-${i}">0</td>
+      <td class="num computed" id="f-capHabilitee-${i}">0</td>
+      <td class="num computed" id="f-traitees-${i}">0</td>
+      <td class="num computed" id="f-chargeH-${i}">0</td>
+      <td class="num computed" id="f-debitJour-${i}">0</td>
+      <td class="num computed" id="f-wipMoyen-${i}">0</td>
+      <td class="num computed" id="f-leadTime-${i}">0</td>
+      <td class="num computed" id="f-niveauCharge-${i}">0</td>
+      <td class="num computed" id="f-indiceSLA-${i}">0</td>
+      <td id="f-alerte-${i}"></td>
+      <td class="num computed" id="f-coutFlux-${i}">0</td>
+      <td><button type="button" class="row-del" data-del="flux" data-i="${i}" title="Supprimer ce flux">🗑</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+function buildFlux(){
+  renderFluxRows();
+  const tbody = document.querySelector('#tblFlux tbody');
+  tbody.addEventListener('input', e=>{
+    const tr = e.target.closest('tr'); if(!tr) return;
+    const i = +tr.dataset.i, f = e.target.dataset.f; if(!f) return;
+    flux[i][f] = e.target.value;
+    recalc(); refresh();
+    if(f==='type') rebuildMatrixHeaders();
+  });
+  tbody.addEventListener('click', e=>{
+    const btn = e.target.closest('[data-del="flux"]'); if(!btn) return;
+    const i = +btn.dataset.i;
+    const label = flux[i].type ? `« ${flux[i].type} »` : 'cette ligne vide';
+    if(!confirm(`Supprimer le flux ${label} ?`)) return;
+    deleteFlux(i);
+  });
+  document.getElementById('btnAddFlux').addEventListener('click', ()=> focusFirstEmptyRow('tblFlux','type'));
+}
+function deleteFlux(i){
+  flux.splice(i,1); flux.push(blankFlux());
+  matrix.splice(i,1); matrix.push(Array(N_RES).fill(false));
+  renderFluxRows(); rebuildMatrixHeaders();
+  recalc(); refresh();
+  showToast('Flux supprimé');
+}
+
+/* ---------- PROJETS ---------- */
+function projPrioSelect(val){
+  const opts = ['','P1','P2','P3','P4'].map(o=>`<option value="${o}" ${o===val?'selected':''}>${o||'—'}</option>`).join('');
+  return `<select data-f="priorite">${opts}</select>`;
+}
+function renderProjetsRows(){
+  const tbody = document.querySelector('#tblProjets tbody');
+  tbody.innerHTML = '';
+  projets.forEach((row,i)=>{
+    const tr = el('tr',{'data-i':i});
+    tr.innerHTML = `
+      <td><input data-f="projet" value="${row.projet}" placeholder="Projet"></td>
+      <td><input data-f="lot" value="${row.lot}" placeholder="Lot/Phase"></td>
+      <td>${projPrioSelect(row.priorite)}</td>
+      <td><input data-f="competence" value="${row.competence}" placeholder="Compétence"></td>
+      <td class="num"><input class="num" type="number" data-f="estimee" value="${row.estimee}"></td>
+      <td class="num"><input class="num" type="number" data-f="realisee" value="${row.realisee}"></td>
+      <td class="num computed" id="p-chargeRestante-${i}">0</td>
+      <td><input type="date" data-f="echeance" value="${row.echeance}"></td>
+      <td class="num computed" id="p-joursRestants-${i}">0</td>
+      <td class="num"><input class="num" type="number" data-f="allocation" value="${row.allocation}"></td>
+      <td id="p-ressource-${i}"></td>
+      <td id="p-statut-${i}"></td>
+      <td class="num computed" id="p-coutProjet-${i}">0</td>
+      <td><button type="button" class="row-del" data-del="proj" data-i="${i}" title="Supprimer ce projet">🗑</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+function buildProjets(){
+  renderProjetsRows();
+  const tbody = document.querySelector('#tblProjets tbody');
+  tbody.addEventListener('input', e=>{
+    const tr = e.target.closest('tr'); if(!tr) return;
+    const i = +tr.dataset.i, f = e.target.dataset.f; if(!f) return;
+    projets[i][f] = e.target.value;
+    recalc(); refresh();
+  });
+  tbody.addEventListener('click', e=>{
+    const btn = e.target.closest('[data-del="proj"]'); if(!btn) return;
+    const i = +btn.dataset.i;
+    const label = projets[i].projet ? `« ${projets[i].projet} / ${projets[i].lot||''} »` : 'cette ligne vide';
+    if(!confirm(`Supprimer le projet ${label} ?`)) return;
+    deleteProjet(i);
+  });
+  document.getElementById('btnAddProj').addEventListener('click', ()=> focusFirstEmptyRow('tblProjets','projet'));
+  rebuildProjRessourceOptions();
+}
+function deleteProjet(i){
+  projets.splice(i,1); projets.push(blankProj());
+  renderProjetsRows(); rebuildProjRessourceOptions();
+  recalc(); refresh();
+  showToast('Projet supprimé');
+}
+function focusFirstEmptyRow(tableId, field){
+  const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+  for(const tr of rows){
+    const input = tr.querySelector(`[data-f="${field}"]`);
+    if(input && !input.value){
+      tr.scrollIntoView({behavior:'smooth', block:'center'});
+      input.focus();
+      return;
+    }
+  }
+  showToast('Toutes les lignes sont utilisées — supprimez-en une pour en libérer une nouvelle.', true);
+}
+function rebuildProjRessourceOptions(){
+  projets.forEach((row,i)=>{
+    const cell = document.getElementById(`p-ressource-${i}`); if(!cell) return;
+    if(!Array.isArray(row.ressources)) row.ressources = row.ressource ? [row.ressource] : [];
+    cell.innerHTML = '';
+    const btn = el('button', { type:'button', class:'res-picker-btn'+(row.ressources.length?'':' empty'), 'data-i':i });
+    btn.textContent = row.ressources.length ? row.ressources.join(', ') : '+ Assigner';
+    btn.addEventListener('click', (e)=>{ e.stopPropagation(); openResPopover(i, btn); });
+    cell.appendChild(btn);
+  });
+}
+
+/* Single reusable popover (position:fixed, appended once to <body>) used to pick
+   one or more resources for a given project row without cramming a multi-select
+   into a narrow table cell. */
+let resPopoverForIndex = null;
+function closeResPopover(){
+  const pop = document.getElementById('resPopover');
+  pop.classList.remove('open');
+  resPopoverForIndex = null;
+}
+function openResPopover(projIndex, anchorEl){
+  const pop = document.getElementById('resPopover');
+  if(resPopoverForIndex === projIndex && pop.classList.contains('open')){ closeResPopover(); return; }
+  resPopoverForIndex = projIndex;
+  const names = resources.map(r=>r.nom).filter(Boolean);
+  const row = projets[projIndex];
+  if(!Array.isArray(row.ressources)) row.ressources = [];
+
+  pop.innerHTML = '<div class="rp-title">Assigner une ou plusieurs ressources</div>';
+  if(!names.length){
+    pop.innerHTML += '<div class="rp-empty">Ajoutez d\'abord des ressources dans l\'onglet Ressources.</div>';
+  }else{
+    names.forEach(n=>{
+      const id = `rp-chk-${projIndex}-${slug(n)}`;
+      const label = el('label',{ for:id });
+      label.innerHTML = `<input type="checkbox" id="${id}" ${row.ressources.includes(n)?'checked':''}> <span>${n}</span>`;
+      label.querySelector('input').addEventListener('change', (e)=>{
+        const set = new Set(row.ressources);
+        if(e.target.checked) set.add(n); else set.delete(n);
+        row.ressources = names.filter(nm=> set.has(nm)); // keep a stable, name-ordered list
+        recalc(); refresh();
+        const btn = document.querySelector(`.res-picker-btn[data-i="${projIndex}"]`);
+        if(btn){ btn.textContent = row.ressources.length? row.ressources.join(', ') : '+ Assigner'; btn.classList.toggle('empty', !row.ressources.length); }
+      });
+      pop.appendChild(label);
+    });
+  }
+
+  const r = anchorEl.getBoundingClientRect();
+  pop.style.left = Math.round(Math.min(r.left, window.innerWidth-270))+'px';
+  pop.style.top = Math.round(r.bottom+6)+'px';
+  pop.classList.add('open');
+}
+document.addEventListener('click', (e)=>{
+  const pop = document.getElementById('resPopover');
+  if(pop.classList.contains('open') && !pop.contains(e.target) && !e.target.closest('.res-picker-btn')){ closeResPopover(); }
+});
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeResPopover(); });
+window.addEventListener('scroll', closeResPopover, true);
+
+/* ---------- MATRICE ---------- */
+function rebuildMatrixHeaders(){
+  const head = document.getElementById('matHeadRow');
+  head.innerHTML = '<th>Flux \\ Ressource</th>';
+  const activeResIdx = resources.map((r,i)=>r.nom?i:null).filter(v=>v!==null);
+  activeResIdx.forEach(ri=>{ head.appendChild(el('th',{},resources[ri].nom)); });
+
+  const tbody = document.querySelector('#tblMatrice tbody');
+  tbody.innerHTML = '';
+  flux.forEach((f,fi)=>{
+    if(!f.type) return;
+    const tr = el('tr');
+    tr.appendChild(el('td',{class:'rowlabel'}, f.type));
+    activeResIdx.forEach(ri=>{
+      const td = el('td',{class:'mat-cell'});
+      const tgl = el('span',{class:'mat-toggle'+(matrix[fi][ri]?' on':''), 'data-fi':fi, 'data-ri':ri});
+      td.appendChild(tgl);
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.mat-toggle').forEach(t=>{
+    t.addEventListener('click', ()=>{
+      const fi=+t.dataset.fi, ri=+t.dataset.ri;
+      matrix[fi][ri] = !matrix[fi][ri];
+      t.classList.toggle('on');
+      recalc(); refresh();
+    });
+  });
+}
+
+/* ---------- ACTIVITÉ (RATIO STANDARD) ---------- */
+function renderActiviteRows(){
+  const tbody = document.querySelector('#tblActivite tbody');
+  tbody.innerHTML = '';
+  activites.forEach((row,i)=>{
+    const tr = el('tr',{'data-i':i});
+    tr.innerHTML = `
+      <td><input data-f="nom" value="${row.nom}" placeholder="Ex. Entretien voirie"></td>
+      <td><input data-f="unite" value="${row.unite}" placeholder="km, m², ha..." style="width:90px"></td>
+      <td class="num"><input class="num" type="number" data-f="quantite" value="${row.quantite}"></td>
+      <td class="num"><input class="num" type="number" step="0.01" data-f="ratio" value="${row.ratio}" placeholder="ex. 30"></td>
+      <td class="num computed" id="ac-normeHoraire-${i}">0</td>
+      <td class="num computed" id="ac-etpNormatif-${i}">0</td>
+      <td class="num computed" id="ac-chargeH-${i}">0</td>
+      <td class="num computed" id="ac-nbHabilites-${i}">0</td>
+      <td class="num computed" id="ac-capHabilitee-${i}">0</td>
+      <td class="num computed" id="ac-niveauCharge-${i}">0</td>
+      <td id="ac-alerte-${i}"></td>
+      <td class="num computed" id="ac-ratioActuel-${i}">0</td>
+      <td class="num computed" id="ac-ecart-${i}">0</td>
+      <td class="num computed" id="ac-cout-${i}">0</td>
+      <td><button type="button" class="row-del" data-del="act" data-i="${i}" title="Supprimer cette ligne">🗑</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+function buildActivite(){
+  renderActiviteRows();
+  const tbody = document.querySelector('#tblActivite tbody');
+  tbody.addEventListener('input', e=>{
+    const tr = e.target.closest('tr'); if(!tr) return;
+    const i = +tr.dataset.i, f = e.target.dataset.f; if(!f) return;
+    activites[i][f] = e.target.value;
+    recalc(); refresh();
+    if(f==='nom') rebuildMatrixActiviteHeaders();
+  });
+  tbody.addEventListener('click', e=>{
+    const btn = e.target.closest('[data-del="act"]'); if(!btn) return;
+    const i = +btn.dataset.i;
+    const label = activites[i].nom ? `« ${activites[i].nom} »` : 'cette ligne vide';
+    if(!confirm(`Supprimer l'activité ${label} ?`)) return;
+    deleteActivite(i);
+  });
+  document.getElementById('btnAddActivite').addEventListener('click', ()=> focusFirstEmptyRow('tblActivite','nom'));
+  rebuildMatrixActiviteHeaders();
+}
+function deleteActivite(i){
+  activites.splice(i,1); activites.push(blankActivite());
+  matrixActivite.splice(i,1); matrixActivite.push(Array(N_RES).fill(false));
+  renderActiviteRows(); rebuildMatrixActiviteHeaders();
+  recalc(); refresh();
+  showToast('Activité supprimée');
+}
+function rebuildMatrixActiviteHeaders(){
+  const head = document.getElementById('matActiviteHeadRow');
+  head.innerHTML = '<th>Activité \\ Ressource</th>';
+  const activeResIdx = resources.map((r,i)=>r.nom?i:null).filter(v=>v!==null);
+  activeResIdx.forEach(ri=>{ head.appendChild(el('th',{},resources[ri].nom)); });
+
+  const tbody = document.querySelector('#tblMatriceActivite tbody');
+  tbody.innerHTML = '';
+  activites.forEach((p,pi)=>{
+    if(!p.nom) return;
+    const tr = el('tr');
+    tr.appendChild(el('td',{class:'rowlabel'}, p.nom));
+    activeResIdx.forEach(ri=>{
+      const td = el('td',{class:'mat-cell'});
+      const tgl = el('span',{class:'mat-toggle'+(matrixActivite[pi][ri]?' on':''), 'data-pi':pi, 'data-ri':ri});
+      td.appendChild(tgl);
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.mat-toggle').forEach(t=>{
+    t.addEventListener('click', ()=>{
+      const pi=+t.dataset.pi, ri=+t.dataset.ri;
+      matrixActivite[pi][ri] = !matrixActivite[pi][ri];
+      t.classList.toggle('on');
+      recalc(); refresh();
+    });
+  });
+}
+
+/* ---------- AIDE ---------- */
+const helpItems = [
+  ["Paramètres","Renseignez d'abord les paramètres globaux. Toutes les capacités et seuils en dépendent."],
+  ["Ressources","Ajoutez les collaborateurs, absences et temps récurrents. Les calculs se font automatiquement."],
+  ["Flux","Saisissez les flux, volumes, AHT et backlog."],
+  ["Matrice flux","Indiquez les habilitations Oui/Non entre flux et ressources en cliquant sur les pastilles."],
+  ["Projets","Renseignez les projets, échéances, allocations et affectations."],
+  ["Activité (ratio standard)","Pour les activités dont la charge se calcule par un ratio d'effectif standard plutôt que par un flux transactionnel — ex. 1 agent pour 30 km de voirie, 1 agent pour 1 500 m² de locaux à entretenir. Saisissez la quantité et le ratio norme (unité par agent) ; la charge se calcule automatiquement et se ramène à la période courante. Habilitez les ressources via la Matrice Activité intégrée dans le même onglet."],
+  ["Pilotage","Consultez le Dashboard pour la charge, la tension et le calibrage ETP."],
+  ["Analyse automatique","L'onglet « Analyse » calcule en continu une synthèse, des risques et des préconisations à partir de vos données, entièrement en local, sans connexion ni service externe."],
+  ["Rapport complet (Word)","Cliquez sur « Rapport complet (Word) » en haut de l'écran pour générer un document .docx prêt à partager : page de garde avec tableau de bord graphique, synthèse exécutive générée automatiquement, puis toutes les données en annexes."],
+  ["Exporter en JSON (sauvegarder)","Cliquez sur « Exporter (JSON) » pour télécharger un fichier contenant l'intégralité de vos données (paramètres, ressources, flux, matrice, projets, activites). Conservez ce fichier pour ne rien perdre de votre travail."],
+  ["Importer un JSON (restaurer)","Cliquez sur « Importer (JSON) » et sélectionnez un fichier exporté précédemment pour retrouver exactement toutes les données saisies — tous les onglets et calculs sont automatiquement remis à jour."],
+];
+function buildAide(){
+  const list = document.getElementById('helpList');
+  helpItems.forEach((h,i)=>{
+    list.appendChild(el('div',{class:'help-item'}, `<div class="help-num">${i+1}</div><div><h4>${h[0]}</h4><p>${h[1]}</p></div>`));
+  });
+  buildGlossary();
+  buildFormulas();
+}
+
+/* ---------- Glossaire ---------- */
+const glossaryItems = [
+  ['ETP', "Équivalent Temps Plein. Nombre de personnes ramené à une base de temps plein théorique, calculé à partir de la capacité brute (avant absences, shrinkage et marge)."],
+  ['ETPT', "Équivalent Temps Plein Travaillé. Version « nette » de l'ETP : elle retire le shrinkage et la marge de sécurité pour ne garder que le temps réellement mobilisable sur le terrain."],
+  ['Capacité brute', "Heures théoriquement disponibles pour une ressource sur la période, selon son taux de disponibilité, avant toute déduction."],
+  ['Capacité nette', "Capacité brute diminuée des absences et du temps récurrent (réunions, formation, tâches fixes...)."],
+  ['Capacité utile', "Capacité nette après application du shrinkage et de la marge de sécurité. C'est la capacité réellement pilotable et comparée à la charge."],
+  ['Charge', "Volume de travail exprimé en heures, qu'il provienne des flux récurrents (opérations) ou des projets."],
+  ['Taux de charge', "Rapport charge ÷ capacité utile. Indique le niveau de sollicitation d'une ressource ou de l'équipe (100 % = charge égale à la capacité)."],
+  ['SLA', "Service Level Agreement : engagement de délai de traitement d'un flux (ex. traiter un dossier sous 2 jours). L'indice SLA mesure le respect de cet engagement compte tenu du débit et du backlog actuels."],
+  ['AHT', "Average Handling Time : temps moyen de traitement d'une unité de flux, en minutes."],
+  ['Backlog', "Volume de dossiers ou tickets en attente de traitement à un instant donné (début ou fin de période)."],
+  ['WIP', "Work In Progress : volume moyen de travail en cours, non terminé, sur un flux."],
+  ['Lead time', "Délai moyen (en jours) entre l'arrivée d'un dossier dans le flux et son traitement effectif."],
+  ['Débit', "Nombre d'unités traitées par jour ouvré sur un flux donné."],
+  ['Shrinkage', "Part du temps de travail perdue pour des raisons indirectes non planifiées à l'avance (aléas, tâches administratives, micro-absences...)."],
+  ['Marge de sécurité', "Réserve de capacité volontairement non allouée, pour absorber les imprévus sans mettre l'équipe en surcharge."],
+  ['Score de tension', "Indicateur composite de 0 à 100 qui combine trois signaux : le niveau de charge global de l'équipe (jusqu'à 60 points), le nombre de flux ou d'activités en capacité insuffisante (+10 points chacun) et le nombre de projets à risque (+15 points chacun). Ce n'est pas une mesure physique unique mais un score construit pour donner en un coup d'œil une intensité globale de tension — voir le détail exact dans « Méthodes de calcul »."],
+  ['Statut (individuel ou global)', "Classification à 4 niveaux — Sous-charge, Zone cible, Vigilance, Surcharge — obtenue en comparant un taux de charge aux seuils définis dans les Paramètres."],
+  ['Priorité (projet)', "Repère P1 à P4 affiché sur chaque projet, purement indicatif : il n'a aucun effet sur les calculs de charge. Utile pour trier ou filtrer visuellement les projets par importance."],
+  ['Matrice d\u2019habilitation', "Tableau croisant flux et ressources : indique quelles personnes sont habilitées à traiter quel flux."],
+  ['Activité (ratio standard)', "Type de charge alternatif au flux transactionnel, pour les activités dont la charge se calcule par un ratio d'effectif standard plutôt que par un volume qui arrive — ex. 1 agent pour 30 km de voirie, 1 agent pour 1 500 m² de locaux à entretenir. La charge se calcule par ETP normatif (Quantité ÷ Ratio norme) × Heures ETP, plutôt que par Volume × AHT."],
+  ['Ratio norme', "Nombre d'unités qu'un agent doit couvrir selon la norme retenue (ex. 30 km de voirie par agent, 1 500 m² par agent) — c'est la donnée à saisir dans Activité, telle qu'elle se dit sur le terrain. L'outil en déduit automatiquement la norme horaire équivalente et la charge correspondante."],
+  ['Ratio actuel', "Pour une activité à ratio standard, quantité ÷ ETP réellement habilités — le pendant observé du ratio norme. Permet une comparaison directe (ex. « vous êtes à 1 agent pour 1 800 m², la norme est à 1 agent pour 1 500 m² »), un langage souvent plus parlant pour ces métiers que le taux de charge seul."],
+  ['Coût annuel chargé', "Coût total employeur d'une personne sur un an (salaire brut + charges patronales). C'est la donnée à saisir dans Ressources — l'outil en déduit automatiquement le coût horaire."],
+  ['Coût horaire', "Coût annuel chargé divisé par la capacité brute annuelle de la personne (indépendante de l'Horizon courant). Deux personnes au même poste, l'une à temps plein et l'autre à mi-temps, obtiennent le même coût horaire même si leur coût annuel diffère."],
+  ['Masse salariale (période)', "Coût total de la capacité brute de l'équipe sur la période affichée (Horizon courant) — c'est ce que l'équipe coûte, qu'elle soit pleinement occupée ou non."],
+  ['Coût de sous-utilisation individuelle', "Coût de la capacité utile d'une ressource qui n'est absorbée par aucune charge (flux ou projet) — du temps payé mais non consommé. Se calcule personne par personne : une équipe peut afficher un statut global SURCHARGE tout en ayant un coût de sous-utilisation positif, si la charge est mal répartie (une personne débordée, une autre inactive). Ce n'est pas une contradiction — c'est le signal qu'un rééquilibrage, pas forcément un recrutement, pourrait suffire."],
+];
+function buildGlossary(){
+  const grid = document.getElementById('glossaryGrid');
+  glossaryItems.forEach(([term,def])=>{
+    grid.appendChild(el('div',{class:'gloss-item'}, `<dt>${term}</dt><dd>${def}</dd>`));
+  });
+}
+
+/* ---------- Méthodes de calcul ---------- */
+const formulaGroups = [
+  {
+    title: 'Paramètres — bases de calcul',
+    rows: [
+      ['Horizon → Jours ouvrés', "Semaine ≈ 4,65 j · Mois ≈ 20,22 j · Trimestre ≈ 60,66 j · Semestre = Jours ouvrés annuels ÷ 2 · Année = Jours ouvrés annuels (mis à jour automatiquement au changement d'Horizon, ajustable ensuite manuellement)", "Le choix de l'Horizon détermine la période de référence de tous les calculs. Important : les volumes de Flux (Volume, Backlog) et l'Allocation période des Projets doivent être saisis pour CETTE MÊME période — si vous choisissez « Mois », entrez des volumes mensuels ; si vous passez à « Semestre » ou « Année », entrez des volumes semestriels ou annuels."],
+      ['Heures ETP', 'Jours ouvrés × Heures par jour', "Nombre d'heures de travail théoriques d'un temps plein sur la période choisie (semaine, mois ou trimestre)."],
+      ['Heures ETPT', 'Heures ETP × (1 − Shrinkage) × (1 − Marge)', "Nombre d'heures réellement mobilisables d'un temps plein sur la même période, une fois le shrinkage et la marge de sécurité déduits."],
+    ]
+  },
+  {
+    title: 'Ressources',
+    rows: [
+      ['Capacité brute', 'Heures ETP × Taux de disponibilité', "Heures disponibles pour cette ressource avant toute déduction."],
+      ['Capacité nette', 'MAX(0 ; Capacité brute − Absences − Temps récurrent)', "Capacité brute diminuée des absences déclarées et du temps récurrent (réunions, formation...)."],
+      ['Capacité utile', 'Capacité nette × (1 − (Shrinkage + Marge))', "Capacité réellement pilotable, comparée à la charge pour calculer le taux individuel."],
+      ['Charge projets', 'Σ Allocation période du projet ÷ Nombre de ressources assignées, pour chaque projet où la ressource est assignée', "Quand plusieurs personnes sont assignées à un même projet, son allocation est répartie à parts égales entre elles."],
+      ['Parts flux', "Capacité utile × Σ (Charge horaire du flux ÷ Capacité habilitée du flux), pour chaque flux où la ressource est habilitée", "Part de la charge de chaque flux attribuée à cette ressource, proportionnelle à sa propre capacité."],
+      ['Charge totale', 'Charge projets + Parts flux + Parts activites', "Somme de toute la charge portée par cette ressource, projets, flux et activites confondus."],
+      ['Taux individuel', 'Charge totale ÷ Capacité utile', "Niveau de sollicitation de la ressource, exprimé en %."],
+      ['Statut', 'Classification du taux individuel selon les seuils des Paramètres', "Sous-charge (< seuil bas) · Zone cible · Vigilance · Surcharge (> seuil haut)."],
+      ['Coût horaire', 'Coût annuel chargé ÷ (Jours ouvrés annuels × Heures/jour × Taux de disponibilité)', "Utilise une référence annuelle fixe (indépendante de l'Horizon courant), pour que le coût horaire d'une personne ne varie jamais selon la période affichée."],
+      ['Coût sous-utilisation individuelle', 'Coût horaire × MAX(0 ; Capacité utile − Charge totale)', "Coût de la capacité utile de cette ressource qui n'est absorbée par aucune charge (flux ou projet) sur la période — du temps payé mais non consommé. Calculé personne par personne : une ressource en surcharge affiche toujours 0 ici (rien à sous-utiliser)."],
+    ]
+  },
+  {
+    title: 'Flux',
+    rows: [
+      ['Nb habilités', "Nombre de « Oui » sur la ligne du flux dans la matrice", "Nombre de ressources autorisées à traiter ce flux."],
+      ['Capacité habilitée', "Σ Capacité utile des ressources habilitées sur ce flux", "Capacité totale mobilisable pour absorber ce flux."],
+      ['Traitées', 'MAX(0 ; Volume + Backlog début − Backlog fin cible)', "Nombre d'unités que le flux doit effectivement traiter sur la période pour atteindre le backlog cible. Ne peut pas être négatif : si le backlog cible dépasse ce qui est réellement disponible à traiter, le résultat est plafonné à 0 (aucun traitement actif requis) plutôt que de produire une charge négative."],
+      ['Charge (h)', 'Traitées × AHT ÷ 60', "Volume d'heures de travail nécessaires pour traiter ces unités."],
+      ['Débit / jour', 'Traitées ÷ Jours ouvrés', "Nombre d'unités à traiter par jour ouvré en moyenne."],
+      ['WIP moyen', '(Backlog début + Backlog fin) ÷ 2', "Volume moyen de travail en cours sur la période."],
+      ['Lead time', 'WIP moyen ÷ Débit / jour', "Délai moyen, en jours, entre l'arrivée d'un dossier et son traitement."],
+      ['Charge %', 'Charge (h) ÷ Capacité habilitée', "Niveau de charge du flux : au-delà de 100 %, la capacité habilitée ne suffit plus. Cas particulier : si la capacité habilitée est nulle (ex. la seule ressource habilitée a un taux de disponibilité à 0) alors qu'il y a de la charge à traiter, le niveau de charge est forcé à 999 % plutôt qu'à 0 %, pour ne pas masquer un flux en réalité totalement non couvert."],
+      ['SLA %', 'MIN(1 ; SLA cible × Débit/jour ÷ (WIP moyen + 0,001)) × MIN(1 ; 1 ÷ MAX(Charge % ; 0,001))', "Combine deux signaux distincts : (1) le backlog actuel peut-il être écoulé dans la fenêtre du SLA cible au débit actuel (1er facteur) ; (2) la charge du flux dépasse-t-elle sa capacité habilitée, ce qui dégraderait le délai (2ᵉ facteur, = 1 tant que Charge % ≤ 100 %, puis diminue au-delà)."],
+      ['Alerte', "Évaluée dans cet ordre de priorité : Aucune ressource (0 habilité) → Capacité insuffisante (Charge % > 100 %, vérifié directement, indépendamment du SLA %) → SLA en risque (SLA % < 95 %) → Surveillance (SLA % entre 95 % et 98 %) → OK sinon.", "Diagnostic synthétique du flux, affiché en badge. La capacité insuffisante est testée en priorité sur la charge réelle, pour ne jamais être masquée par le calcul du SLA %."],
+      ['Coût', 'Charge (h) × coût horaire moyen des ressources habilitées (pondéré par leur capacité utile)', "Coût estimé du traitement de ce flux sur la période, basé sur les personnes habilitées à le traiter."],
+    ]
+  },
+  {
+    title: 'Projets',
+    rows: [
+      ['Charge restante', 'MAX(0 ; Charge estimée − Charge réalisée)', "Volume de travail qu'il reste à produire sur le projet."],
+      ['Jours restants', 'Date d\u2019échéance − Date du jour', "Nombre de jours calendaires avant l'échéance du lot/projet."],
+      ['Priorité (P1-P4)', "Repère indicatif, saisi librement", "N'a aucun effet sur les calculs de charge — sert uniquement à trier/filtrer visuellement les projets par importance."],
+      ['Charge par ressource', 'Allocation période ÷ Nombre de ressources assignées', "Quand plusieurs personnes sont assignées à un même projet, chacune porte une part égale de son allocation — c'est cette valeur qui alimente la « Charge projets » de chaque ressource."],
+      ['Statut de risque', "RISQUE si (Jours restants < 14) ET (Charge restante > Allocation période) ; sinon OK", "Signale les projets dont l'échéance est proche alors que le travail restant dépasse ce qui est alloué sur la période."],
+      ['Coût', 'Σ (Charge par ressource × coût horaire), pour chaque ressource assignée', "Coût estimé du projet sur la période, basé sur les personnes réellement assignées et leur coût horaire respectif."],
+    ]
+  },
+  {
+    title: 'Activité (ratio standard)',
+    rows: [
+      ['ETP normatif', 'Quantité ÷ Ratio norme', "Effectif théoriquement nécessaire selon la norme (ex. 60 km ÷ 30 km/agent = 2 ETP). Le ratio norme se saisit directement tel qu'il se dit sur le terrain — pas besoin de le convertir en heures au préalable."],
+      ['Norme horaire (période)', 'Heures ETP (période) ÷ Ratio norme', "Traduction du ratio norme en heures par unité, purement informative — affichée pour transparence, mais ce n'est pas ce que vous saisissez."],
+      ['Charge (période)', 'ETP normatif × Heures ETP (période)', "Reprend directement la référence « Heures ETP » déjà utilisée partout ailleurs dans le modèle — s'ajuste donc automatiquement à l'Horizon choisi dans Paramètres, sans étape de conversion annuelle intermédiaire."],
+      ['Capacité habilitée', "Σ Capacité utile des ressources habilitées (Matrice Activité) sur cette ligne", "Capacité totale mobilisable pour couvrir cette activité."],
+      ['Charge %', 'Charge (période) ÷ Capacité habilitée', "Niveau de charge de l'activité, même lecture que pour un flux."],
+      ['Alerte', "Aucune ressource (0 habilité) → Capacité insuffisante (Charge % > 100 %) → Vigilance (Charge % ≥ seuil ambre) → OK sinon.", "Pas de notion de SLA ni de backlog ici (pas de file d'attente sur ce type d'activité) — seule la capacité compte."],
+      ['ETP habilités', 'Capacité habilitée ÷ Heures ETP (période)', "Nombre d'ETP réellement mobilisables sur cette activité, à l'Horizon courant."],
+      ['Ratio actuel', 'Quantité ÷ ETP habilités', "Quantité réellement portée par ETP habilité (ex. km par agent) — comparable directement au ratio norme puisque les deux s'expriment dans la même unité."],
+      ['Écart vs norme', '(Ratio actuel − Ratio norme) ÷ Ratio norme', "Positif : chaque ETP couvre plus que la norme ne le recommande (risque de sous-effectif relatif). Négatif : l'équipe est mieux dotée que la norme."],
+      ['Coût', 'Charge (période) × coût horaire moyen des ressources habilitées (pondéré par leur capacité utile)', "Même logique que pour un flux ou un projet."],
+    ]
+  },
+  {
+    title: 'Tableau de bord — agrégats équipe',
+    rows: [
+      ['Capacité totale brute', 'Σ Capacité brute de toutes les ressources', "Capacité théorique globale de l'équipe."],
+      ['Capacité utile équipe', 'Σ Capacité utile de toutes les ressources', "Capacité réellement mobilisable de l'équipe."],
+      ['Charge flux', 'Σ Charge (h) de tous les flux', "Volume horaire total requis par les opérations récurrentes."],
+      ['Charge projets (total)', 'Σ Allocation période de tous les projets', "Volume horaire total alloué aux projets sur la période (indépendant du nombre de personnes assignées)."],
+      ['Charge totale', 'Charge flux + Charge projets + Charge activites', "Volume horaire total à absorber par l'équipe."],
+      ['Taux de charge équipe', 'Charge totale ÷ Capacité utile équipe', "Niveau de sollicitation global de l'équipe — pilote le score de tension et le statut global."],
+      ['Couverture capacité', 'Capacité utile équipe ÷ Charge totale', "Ratio inverse, informatif : au-dessus de 100 %, l'équipe dispose de marge."],
+      ['Score de tension', 'MIN(100 ; MAX(0 ; Taux de charge équipe × 60 + (Flux + Activité en capacité insuffisante) × 10 + Projets à risque × 15))', "Score composite, plafonné à 100 et plancher à 0. Décomposition : (1) le taux de charge équipe contribue jusqu'à 60 points — à 100 % de charge, il apporte exactement 60 points, à 50 % de charge 30 points, etc. ; (2) chaque flux OU activité en alerte « Capacité insuffisante » ajoute 10 points ; (3) chaque projet au statut « RISQUE » ajoute 15 points. Exemple : taux de charge 80 % (→ 48 pts) + 1 flux en capacité insuffisante (→ 10 pts) + 1 projet à risque (→ 15 pts) = 73/100. Les poids (60/10/15) sont volontairement modélisés pour donner plus de poids aux alertes concrètes qu'au seul taux de charge moyen ; ils ne sont pas configurables dans l'interface pour l'instant."],
+      ['Statut global', "Classification du taux de charge équipe selon les mêmes seuils que le statut individuel", "Sous-charge · Zone cible · Vigilance · Surcharge, au niveau de toute l'équipe."],
+      ['ETP actuelle', 'Capacité totale brute ÷ Heures ETP', "Nombre d'ETP réellement présents dans l'équipe."],
+      ['ETPT actuelle', 'Capacité utile équipe ÷ Heures ETP', "Nombre d'ETP « travaillés utiles », net de shrinkage et de marge."],
+      ['ETP requis', 'Charge totale ÷ Heures ETP', "Nombre d'ETP nécessaires pour couvrir toute la charge (flux + projets) de la période, en heures théoriques (avant shrinkage/marge)."],
+      ['ETPT requis', 'Charge totale ÷ Heures ETPT', "Même besoin, mais exprimé en ETP « travaillés utiles » — c'est-à-dire net de shrinkage et de marge de sécurité. Toujours ≥ ETP requis, puisque chaque ETPT dispose de moins d'heures mobilisables qu'un ETP brut."],
+      ['Masse salariale (période)', 'Σ Coût horaire × Capacité brute, pour toutes les ressources', "Coût total de la capacité brute de l'équipe sur la période affichée — ce que l'équipe coûte, indépendamment de son taux d'utilisation réel."],
+      ['Coût sous-utilisation individuelle (équipe)', 'Σ Coût sous-utilisation individuelle de toutes les ressources', "Coût cumulé de la capacité payée mais non consommée sur la période. Peut être positif même si le Statut global est SURCHARGE : les deux mesurent des choses différentes (la moyenne de l'équipe vs. la situation de chaque personne). Ce cas de figure signale un déséquilibre de répartition — une personne débordée, une autre disponible — plutôt qu'un manque d'effectif global."],
+      ['Coût horaire moyen équipe', 'Σ (Coût horaire × Capacité utile) ÷ Capacité utile équipe', "Coût horaire moyen pondéré par la capacité utile de chacun — sert de référence pour estimer le coût d'un ETP supplémentaire."],
+      ['Coût du besoin en ETP manquant', 'Écart ETP requis − ETP actuelle × Heures ETP × Coût horaire moyen équipe', "Estimation du coût, sur la période, de l'écart entre l'effectif nécessaire et l'effectif actuel — utile pour chiffrer un besoin de recrutement."],
+    ]
+  },
+];
+function buildFormulas(){
+  const area = document.getElementById('formulasArea');
+  formulaGroups.forEach(group=>{
+    const card = el('div',{class:'table-card formula-table-card'});
+    card.appendChild(el('div',{class:'ftc-head'}, group.title));
+    const tableWrap = el('div',{class:'table-scroll'});
+    const rowsHtml = group.rows.map(([name,formula,desc])=>
+      `<tr><td class="f-name">${name}</td><td class="f-formula">${formula}</td><td class="f-desc">${desc}</td></tr>`
+    ).join('');
+    tableWrap.innerHTML = `<table class="formula">
+      <thead><tr><th>Indicateur</th><th>Formule</th><th>Explication</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>`;
+    card.appendChild(tableWrap);
+    area.appendChild(card);
+  });
+}
+
+/* =====================================================================
+   REFRESH — writes computed values into already-built DOM
+===================================================================== */
+function statColor(s){
+  if(s==='SOUS-CHARGE') return 'var(--blue)';
+  if(s==='ZONE CIBLE'||s==='CIBLE') return 'var(--green)';
+  if(s==='VIGILANCE') return 'var(--amber)';
+  if(s==='SURCHARGE') return 'var(--red)';
+  return 'var(--ink-faint)';
+}
+
+function refresh(){
+  /* Params derived */
+  document.getElementById('pHeuresETP').textContent = fmt(DB.heuresETP,1);
+  document.getElementById('pHeuresETPT').textContent = fmt(DB.heuresETPT,1);
+
+  /* Ressources rows */
+  let fB=0,fN=0,fU=0,fP=0,fF=0,fT=0,fSousUtil=0;
+  DB.res.forEach((r,i)=>{
+    setTxt(`r-capaciteBrute-${i}`, fmt(r.capaciteBrute));
+    setTxt(`r-capaciteNette-${i}`, fmt(r.capaciteNette));
+    setTxt(`r-capaciteUtile-${i}`, fmt(r.capaciteUtile));
+    setTxt(`r-chargeProjets-${i}`, fmt(r.chargeProjets));
+    setTxt(`r-partsFlux-${i}`, fmt(r.partsFlux));
+    setTxt(`r-chargeTotale-${i}`, fmt(r.chargeTotale));
+    setTxt(`r-tauxIndiv-${i}`, r.nom? fmtPct(r.tauxIndiv) : '—');
+    const st = document.getElementById(`r-statut-${i}`); if(st) st.innerHTML = r.nom? badgeHtml(r.statut) : '';
+    setTxt(`r-coutHoraire-${i}`, r.coutHoraire>0 ? fmtMoney(r.coutHoraire,2) : '—');
+    setTxt(`r-coutSousUtil-${i}`, r.coutHoraire>0 ? fmtMoney(r.coutSousUtilisation) : '—');
+    fB+=r.capaciteBrute; fN+=r.capaciteNette; fU+=r.capaciteUtile; fP+=r.chargeProjets; fF+=r.partsFlux; fT+=r.chargeTotale;
+    fSousUtil+=r.coutSousUtilisation;
+  });
+  setTxt('resFootBrute', fmt(fB)); setTxt('resFootNette', fmt(fN)); setTxt('resFootUtile', fmt(fU));
+  setTxt('resFootProjets', fmt(fP)); setTxt('resFootFlux', fmt(fF)); setTxt('resFootTotale', fmt(fT));
+  setTxt('resFootCoutSousUtil', fmtMoney(fSousUtil));
+
+  /* Flux rows */
+  DB.flux.forEach((f,i)=>{
+    setTxt(`f-nbHabilites-${i}`, f.type? f.nbHabilites : '—');
+    setTxt(`f-capHabilitee-${i}`, fmt(f.capHabilitee));
+    setTxt(`f-traitees-${i}`, fmt(f.traitees,0));
+    setTxt(`f-chargeH-${i}`, fmt(f.chargeH));
+    setTxt(`f-debitJour-${i}`, fmt(f.debitJour,2));
+    setTxt(`f-wipMoyen-${i}`, fmt(f.wipMoyen));
+    setTxt(`f-leadTime-${i}`, fmt(f.leadTime,2));
+    setTxt(`f-niveauCharge-${i}`, f.type? fmtPct(f.niveauCharge) : '—');
+    setTxt(`f-indiceSLA-${i}`, f.type? fmtPct(f.indiceSLA) : '—');
+    const al = document.getElementById(`f-alerte-${i}`); if(al) al.innerHTML = f.type? badgeHtml(f.alerte) : '';
+    setTxt(`f-coutFlux-${i}`, f.type && f.coutFlux>0 ? fmtMoney(f.coutFlux) : '—');
+  });
+
+  /* Projets rows */
+  DB.proj.forEach((pr,i)=>{
+    setTxt(`p-chargeRestante-${i}`, fmt(pr.chargeRestante,0));
+    setTxt(`p-joursRestants-${i}`, pr.joursRestants!==null ? pr.joursRestants : '—');
+    const st = document.getElementById(`p-statut-${i}`); if(st) st.innerHTML = pr.projet? badgeHtml(pr.statut) : '';
+    setTxt(`p-coutProjet-${i}`, pr.projet && pr.coutProjet>0 ? fmtMoney(pr.coutProjet) : '—');
+  });
+
+  /* Activité rows */
+  (DB.activites||[]).forEach((pt,i)=>{
+    setTxt(`ac-chargeAnnuelle-${i}`, pt.nom? fmt(pt.chargeAnnuelle,0) : '—');
+    setTxt(`ac-chargeH-${i}`, pt.nom? fmt(pt.chargeH,0) : '—');
+    setTxt(`ac-nbHabilites-${i}`, pt.nom? pt.nbHabilites : '—');
+    setTxt(`ac-capHabilitee-${i}`, pt.nom? fmt(pt.capHabilitee) : '—');
+    setTxt(`ac-niveauCharge-${i}`, pt.nom? fmtPct(pt.niveauCharge) : '—');
+    const al = document.getElementById(`ac-alerte-${i}`); if(al) al.innerHTML = pt.nom? badgeHtml(pt.alerte) : '';
+    setTxt(`ac-ratioActuel-${i}`, pt.nom && pt.ratioActuel>0 ? fmt(pt.ratioActuel,0)+(pt.unite?' '+pt.unite+'/ETP':'') : '—');
+    setTxt(`ac-ratioNorme-${i}`, pt.nom && pt.ratioNorme>0 ? fmt(pt.ratioNorme,0)+(pt.unite?' '+pt.unite+'/ETP':'') : '—');
+    setTxt(`ac-ecart-${i}`, pt.nom && pt.ratioNorme>0 ? (pt.ecartVsNorme>=0?'+':'')+fmtPct(pt.ecartVsNorme) : '—');
+    setTxt(`ac-cout-${i}`, pt.nom && pt.coutActivite>0 ? fmtMoney(pt.coutActivite) : '—');
+  });
+
+  /* Dashboard */
+  const d = DB.dash;
+  document.getElementById('kpiTop').innerHTML = kpiCard('Charge totale', fmt(d.chargeTotale), 'h', 'Flux + Projets + Activité') +
+    kpiCard('Capacité utile équipe', fmt(d.capaciteUtileEquipe), 'h', `${d.nbPersonnes} personne(s)`) +
+    kpiCard('Taux de charge équipe', fmtPct(d.tauxChargeEquipe), '', 'Charge ÷ capacité utile — cible ≤ 100 %') +
+    kpiCard('Statut global', '', '', '', d.statutGlobal);
+
+  document.getElementById('kpiCapa').innerHTML =
+    kpiCardSmall('Capacité totale brute', fmt(d.capaciteTotaleBrute)+' h') +
+    kpiCardSmall('Charge flux', fmt(d.chargeFlux)+' h') +
+    kpiCardSmall('Charge projets', fmt(d.chargeProjetsTotal)+' h') +
+    kpiCardSmall('Respect SLA moyen', fmtPct(d.respectSLAmoyen)) +
+    kpiCardSmall('Couverture capacité', fmtPct(d.ratioCapCharge));
+
+  document.getElementById('etpBlock').innerHTML =
+    kpiCardSmall('Nombre de personnes', String(d.nbPersonnes)) +
+    kpiCardSmall('ETP actuelle', fmt(d.ETPactuel,2)) +
+    kpiCardSmall('ETPT actuelle (temps travaillé utile)', fmt(d.ETPTactuel,2)) +
+    kpiCardSmall('ETP requis', fmt(d.ETPrequis,2)) +
+    kpiCardSmall('ETPT requis', fmt(d.ETPTrequis,2));
+
+  document.getElementById('payrollBlock').innerHTML =
+    kpiCardSmall('Masse salariale (période)', d.masseSalarialePeriode>0 ? fmtMoney(d.masseSalarialePeriode) : '—') +
+    kpiCardSmall('Coût sous-utilisation individuelle', d.coutSousUtilisationTotal>0 ? fmtMoney(d.coutSousUtilisationTotal) : '—') +
+    kpiCardSmall('Coût horaire moyen équipe', d.coutHoraireMoyenEquipe>0 ? fmtMoney(d.coutHoraireMoyenEquipe,2) : '—') +
+    kpiCardSmall("Coût du besoin en ETP manquant", d.coutBesoinETP>0 ? fmtMoney(d.coutBesoinETP) : '—');
+
+  document.getElementById('alertBody').innerHTML =
+    alertRow('Flux sans ressource', d.fluxSansRessource) +
+    alertRow('Flux en capacité insuffisante', d.fluxCapaciteInsuffisante) +
+    alertRow('Flux SLA en risque', d.fluxSLARisque) +
+    alertRow('Projets à risque', d.projetsRisque) +
+    alertRow('Activité sans ressource', d.activiteSansRessource) +
+    alertRow('Activité en capacité insuffisante', d.activiteCapaciteInsuffisante);
+
+  document.getElementById('sideStatus').textContent = d.statutGlobal || '—';
+  document.getElementById('sideDot').style.background = statColor(d.statutGlobal);
+  drawGauge(d.scoreTension);
+  document.getElementById('gaugeNum').textContent = d.scoreTension;
+  drawBarRes();
+  drawDonutRepartition();
+
+  renderAutoAnalysis();
+}
+function setTxt(id, val){ const e=document.getElementById(id); if(e) e.textContent = val; }
+function kpiCard(label,value,unit,foot,badge){
+  return `<div class="card">
+    <div class="kpi-label">${label}</div>
+    ${badge!==undefined ? `<div style="margin-top:10px">${badgeHtml(badge)}</div>` : `<div class="kpi-value">${value}<span class="kpi-unit">${unit}</span></div>`}
+    <div class="kpi-foot">${foot}</div>
+  </div>`;
+}
+function kpiCardSmall(label,value){
+  return `<div><div class="kpi-label">${label}</div><div class="kpi-value" style="font-size:19px;margin-top:4px">${value}</div></div>`;
+}
+function alertRow(label,n){
+  const cls = n>0 ? 'badge surcharge' : 'badge ok';
+  return `<tr><td>${label}</td><td class="num"><span class="${cls}">${n}</span></td></tr>`;
+}
+
+/* Gauge (SVG semicircle) */
+function drawGauge(score){
+  const svg = document.getElementById('gaugeSvg');
+  const cx=110, cy=110, r=90;
+  const zones = [
+    [0,60,'--bleu'],[60,80,'--vert'],[80,95,'--ambre'],[95,100,'--rouge']
+  ];
+  const toRad = deg => (deg*Math.PI)/180;
+  const pt = (val)=>{ const ang = 180 - (val/100)*180; return [cx+r*Math.cos(toRad(ang)), cy-r*Math.sin(toRad(ang))]; };
+  const css = getComputedStyle(document.documentElement);
+  let arcs='';
+  zones.forEach(([a,b,varName])=>{
+    const color = css.getPropertyValue(varName).trim() || '#888';
+    const [x1,y1]=pt(a), [x2,y2]=pt(b);
+    const large = (b-a)>50?1:0;
+    arcs += `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}" stroke="${color}" stroke-width="16" fill="none"/>`;
+  });
+  const needleAngle = 180-(score/100)*180;
+  const nx = cx+ (r-22)*Math.cos(toRad(needleAngle));
+  const ny = cy- (r-22)*Math.sin(toRad(needleAngle));
+  svg.innerHTML = `${arcs}
+    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="var(--nuit)" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="6" fill="var(--nuit)"/>`;
+}
+
+/* =====================================================================
+   GRAPHIQUES DASHBOARD (même contenu que la feuille « Graphiques » Excel)
+   — Barres : Top 10 des ressources par charge totale
+   — Donut  : répartition de la charge Flux / Projets / Activités
+===================================================================== */
+const _esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function drawBarRes(){
+  const svg = document.getElementById('barResSvg'); if(!svg) return;
+  const W=520, H=360, m={t:16, r:12, b:66, l:52};
+  const rows = (DB.res||[]).filter(r=>r.nom && r.nom.trim())
+    .map(r=>({nom:r.nom.trim(), v:r.chargeTotale||0, cap:r.capaciteUtile||0}))
+    .sort((a,b)=>b.v-a.v).slice(0,10);
+  const legend = document.getElementById('barResLegend');
+  if(!rows.length){
+    svg.innerHTML = `<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="#94A3B8" font-size="13">Aucune ressource nommée</text>`;
+    if(legend) legend.innerHTML='';
+    return;
+  }
+  const maxV = Math.max(1, ...rows.map(r=>Math.max(r.v, r.cap)));
+  const iw = W-m.l-m.r, ih = H-m.t-m.b;
+  const bw = Math.min(44, iw/rows.length*0.62);
+  const y = v => m.t + ih - (v/maxV)*ih;
+  let g='';
+  const ticks = 4;
+  for(let i=0;i<=ticks;i++){
+    const v=maxV*i/ticks, yy=y(v);
+    g += `<line x1="${m.l}" y1="${yy}" x2="${W-m.r}" y2="${yy}" stroke="#E2E8F0" stroke-width="1"/>` +
+         `<text x="${m.l-7}" y="${yy+3.5}" text-anchor="end" fill="#94A3B8" font-size="10" font-family="IBM Plex Mono,monospace">${Math.round(v)}</text>`;
+  }
+  rows.forEach((r,i)=>{
+    const cx = m.l + iw*(i+0.5)/rows.length;
+    const parts = r.nom.split(/\s+/);
+    const init = ((parts[0]||' ')[0]||'') + (parts[1] ? ((parts[1][0]||'')) : '');
+    const bx = cx-bw/2;
+    g += `<rect x="${bx}" y="${y(r.v)}" width="${bw}" height="${Math.max(0, m.t+ih-y(r.v))}" rx="5" fill="var(--bleu)">` +
+         `<title>${_esc(r.nom)} — charge totale ${Math.round(r.v)} h (capacité utile ${Math.round(r.cap)} h)</title></rect>`;
+    if(r.cap>0 && r.cap<=maxV){
+      g += `<line x1="${bx-4}" y1="${y(r.cap)}" x2="${bx+bw+4}" y2="${y(r.cap)}" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round"><title>Capacité utile : ${Math.round(r.cap)} h</title></line>`;
+    }
+    g += `<text x="${cx}" y="${y(r.v)-5}" text-anchor="middle" fill="var(--nuit)" font-size="10.5" font-weight="700" font-family="IBM Plex Mono,monospace">${Math.round(r.v)}</text>`;
+    g += `<text x="${cx}" y="${m.t+ih+17}" text-anchor="middle" fill="#334155" font-size="10.5" font-weight="700">${_esc(init)}</text>`;
+    parts.slice(0,2).forEach((w,k)=>{
+      g += `<text x="${cx}" y="${m.t+ih+30+k*11}" text-anchor="middle" fill="#94A3B8" font-size="9">${_esc(w)}</text>`;
+    });
+  });
+  svg.innerHTML = g;
+  if(legend) legend.innerHTML = `<span><i style="background:var(--bleu)"></i>Charge totale (h)</span><span><i style="background:var(--gold); height:3px; border-radius:2px;"></i>Capacité utile</span>`;
+}
+
+function drawDonutRepartition(){
+  const svg = document.getElementById('donutSvg'); if(!svg) return;
+  const d = DB.dash||{};
+  const parts = [
+    ['Flux récurrents', d.chargeFlux||0, 'var(--pex)', '#fff'],
+    ['Projets',         d.chargeProjetsTotal||0, 'var(--nuit)', '#fff'],
+    ['Activités (ratio)', d.chargeActivite||0, 'var(--gold)', '#7C4A03'],
+  ].filter(p=>p[1]>0);
+  const legend = document.getElementById('donutLegend');
+  const total = parts.reduce((s,p)=>s+p[1],0);
+  if(total<=0){
+    svg.innerHTML = `<text x="260" y="150" text-anchor="middle" fill="#94A3B8" font-size="13">Aucune charge saisie</text>`;
+    if(legend) legend.innerHTML='';
+    return;
+  }
+  const cx=170, cy=150, R=105, r=62;
+  let a0=-Math.PI/2, arcs='';
+  parts.forEach(([label,v,color,labelColor])=>{
+    const frac=v/total, a1=a0+frac*2*Math.PI;
+    const large = frac>0.5?1:0;
+    const x0=cx+R*Math.cos(a0), y0=cy+R*Math.sin(a0);
+    const x1=cx+R*Math.cos(a1), y1=cy+R*Math.sin(a1);
+    const x2=cx+r*Math.cos(a1), y2=cy+r*Math.sin(a1);
+    const x3=cx+r*Math.cos(a0), y3=cy+r*Math.sin(a0);
+    arcs += `<path d="M ${x0} ${y0} A ${R} ${R} 0 ${large} 1 ${x1} ${y1} L ${x2} ${y2} A ${r} ${r} 0 ${large} 0 ${x3} ${y3} Z" fill="${color}" stroke="#fff" stroke-width="2"><title>${_esc(label)} — ${Math.round(v)} h (${Math.round(frac*100)}%)</title></path>`;
+    if(frac>=0.045){
+      const am=(a0+a1)/2, lr=(R+r)/2;
+      arcs += `<text x="${cx+lr*Math.cos(am)}" y="${cy+lr*Math.sin(am)+4}" text-anchor="middle" fill="${labelColor}" font-size="11" font-weight="800" pointer-events="none">${Math.round(frac*100)}%</text>`;
+    }
+    a0=a1;
+  });
+  arcs += `<text x="${cx}" y="${cy-7}" text-anchor="middle" fill="#94A3B8" font-size="10" font-weight="700" letter-spacing="1.5">TOTAL</text>`;
+  arcs += `<text x="${cx}" y="${cy+16}" text-anchor="middle" fill="var(--nuit)" font-size="20" font-weight="800" font-family="IBM Plex Mono,monospace">${Math.round(total)} h</text>`;
+  svg.innerHTML = arcs;
+  if(legend) legend.innerHTML = parts.map(([label,v,color])=>
+    `<span><i style="background:${color}"></i>${_esc(label)} — ${Math.round(v)} h (${Math.round(v/total*100)}%)</span>`
+  ).join('');
+}
+
+/* =====================================================================
+   NAVIGATION / PRINT
+===================================================================== */
+const titles = {
+  dashboard:['Accueil · Dashboard','Vue consolidée de la charge, capacité et tension équipe'],
+  parametres:['Paramètres','Réglages globaux du modèle de capacité'],
+  ressources:['Ressources',"Capacité et charge de l'équipe"],
+  flux:['Flux',"Volumes, SLA et charge des flux récurrents"],
+  matrice:['Matrice Flux',"Habilitations flux / ressources"],
+  projets:['Projets',"Portefeuille et risques projets"],
+  activite:['Activité (ratio standard)',"Charge calculée par un ratio d'effectif standard (unité par agent) — pour les activités non transactionnelles"],
+  analyse:['Analyse',"Synthèse, risques et recommandations générés automatiquement"],
+  saison:['Saisonnalité',"Tendances multi-périodes à partir de vos sauvegardes JSON"],
+  aide:['Aide',"Mode d'emploi"],
+};
+document.getElementById('navMenu').addEventListener('click', e=>{
+  const item = e.target.closest('.nav-item'); if(!item) return;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  item.classList.add('active');
+  const v = item.dataset.view;
+  document.querySelectorAll('.view').forEach(s=>s.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.getElementById('pageTitle').textContent = titles[v][0];
+  document.getElementById('pageSub').textContent = titles[v][1];
+});
+
+function currentViewInfo(){
+  const navItem = document.querySelector('.nav-item.active');
+  const key = navItem ? navItem.dataset.view : 'dashboard';
+  return { key, title: titles[key] ? titles[key][0] : 'Section' };
+}
+
+/* =====================================================================
+   RAPPORT COMPLET — génération d'un document Word (.docx) façon cabinet
+   d'audit & conseil : page de garde, synthèse exécutive (issue de l'analyse
+   IA quand disponible), tableau de bord, puis toutes les données détaillées
+   en annexes (Paramètres, Ressources, Flux, Matrice, Projets).
+===================================================================== */
+const DOCX_CDN = 'https://cdn.jsdelivr.net/npm/docx@9.7.1/dist/index.iife.js';
+function loadDocxLib(){
+  if(window.docx) return Promise.resolve(window.docx);
+  if(loadDocxLib._p) return loadDocxLib._p;
+  loadDocxLib._p = new Promise((resolve,reject)=>{
+    const s = document.createElement('script');
+    s.src = DOCX_CDN;
+    s.onload = ()=> window.docx ? resolve(window.docx) : reject(new Error('Bibliothèque de génération Word indisponible.'));
+    s.onerror = ()=> reject(new Error('Connexion internet requise pour générer le document Word.'));
+    document.head.appendChild(s);
+  });
+  return loadDocxLib._p;
+}
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 4000);
+}
+
+const NAVY = '0C2D4D', ACCENT = '0EA5E9', INK = '1E293B', INKSOFT = '64748B', ZEBRA = 'F1F5F9', LINE = 'E2E8F0';
+
+function buildReportTable(D, headers, rows, colWidthsPct){
+  const total = colWidthsPct ? colWidthsPct.reduce((a,b)=>a+b,0) : 0;
+  const headerRow = new D.TableRow({
+    tableHeader: true,
+    children: headers.map((h,i)=> new D.TableCell({
+      width: colWidthsPct ? { size: Math.round(colWidthsPct[i]/total*100), type: D.WidthType.PERCENTAGE } : undefined,
+      shading: { fill: NAVY, type: D.ShadingType.CLEAR, color:'auto' },
+      verticalAlign: D.VerticalAlign.CENTER,
+      margins:{ top:70, bottom:70, left:90, right:90 },
+      children:[ new D.Paragraph({ children:[ new D.TextRun({ text:h, bold:true, color:'FFFFFF', size:16 }) ] }) ]
+    }))
+  });
+  const bodyRows = rows.map((r,ri)=> new D.TableRow({
+    children: r.map((c,ci)=> new D.TableCell({
+      width: colWidthsPct ? { size: Math.round(colWidthsPct[ci]/total*100), type: D.WidthType.PERCENTAGE } : undefined,
+      shading: ri%2===1 ? { fill: ZEBRA, type: D.ShadingType.CLEAR, color:'auto' } : undefined,
+      margins:{ top:55, bottom:55, left:90, right:90 },
+      children:[ new D.Paragraph({ children:[ new D.TextRun({ text:String(c ?? ''), size:16 }) ] }) ]
+    }))
+  }));
+  return new D.Table({ rows:[headerRow, ...bodyRows], width:{ size:100, type: D.WidthType.PERCENTAGE } });
+}
+function reportHeading(D, text, level){
+  return new D.Paragraph({ text, heading: level || D.HeadingLevel.HEADING_1, spacing:{ before:280, after:140 } });
+}
+function reportPara(D, text, opts={}){
+  return new D.Paragraph({ children:[ new D.TextRun({ text, size:20, ...opts }) ], spacing:{ after:120 } });
+}
+function reportBullet(D, text){
+  return new D.Paragraph({ children:[ new D.TextRun({ text, size:20 }) ], bullet:{ level:0 }, spacing:{ after:60 } });
+}
+function reportMixedPara(D, parts){
+  return new D.Paragraph({
+    children: parts.map(p=> new D.TextRun({ text:p.text, bold:!!p.bold, size:20 })),
+    spacing:{ after:120 }
+  });
+}
+function reportFooter(D){
+  return new D.Footer({ children:[ new D.Paragraph({
+    alignment: D.AlignmentType.CENTER,
+    children:[
+      new D.TextRun({ text:'Pilotage & Régulation — Page ', size:14, color: INKSOFT }),
+      new D.TextRun({ children:[ D.PageNumber.CURRENT ], size:14, color: INKSOFT }),
+      new D.TextRun({ text:' / ', size:14, color: INKSOFT }),
+      new D.TextRun({ children:[ D.PageNumber.TOTAL_PAGES ], size:14, color: INKSOFT }),
+    ]
+  })]});
+}
+
+/* =====================================================================
+   Tableau de bord visuel (page 1 du rapport) — 4 panneaux dessinés sur un
+   <canvas> puis exportés en PNG pour être insérés dans le document Word.
+===================================================================== */
+const CHART_COLORS = {
+  navy:'#0C2D4D', ink:'#1E293B', inkSoft:'#64748B', inkFaint:'#94A3B8',
+  accent:'#0EA5E9', blue:'#0369A1', green:'#1FA04B', amber:'#F59E0B', red:'#B32025',
+  border:'#E2E8F0', panel:'#FFFFFF', bg:'#F1F5F9'
+};
+function chartRoundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function chartPanelFrame(ctx,x,y,w,h,title){
+  ctx.save();
+  chartRoundRect(ctx,x,y,w,h,10);
+  ctx.fillStyle = CHART_COLORS.panel; ctx.fill();
+  ctx.lineWidth=1.5; ctx.strokeStyle = CHART_COLORS.border; ctx.stroke();
+  ctx.fillStyle = CHART_COLORS.inkSoft;
+  ctx.font = '600 20px Arial, sans-serif';
+  ctx.textBaseline = 'top'; ctx.textAlign='left';
+  ctx.fillText(title.toUpperCase(), x+22, y+18);
+  ctx.restore();
+  return { x:x+22, y:y+56, w:w-44, h:h-78 };
+}
+function chartDrawBars(ctx, area, items){
+  const maxV = Math.max(...items.map(i=>i.value), 1);
+  const gap = 34, barW = (area.w - gap*(items.length-1)) / items.length;
+  const baseline = area.y + area.h;
+  items.forEach((it,i)=>{
+    const bh = Math.max(4, (it.value/maxV) * (area.h-40));
+    const bx = area.x + i*(barW+gap);
+    const by = baseline - bh;
+    chartRoundRect(ctx, bx, by, barW, bh, 8);
+    ctx.fillStyle = it.color; ctx.fill();
+    ctx.fillStyle = CHART_COLORS.ink;
+    ctx.font = 'bold 22px Arial, sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText(it.valueLabel, bx+barW/2, by-8);
+    ctx.fillStyle = CHART_COLORS.inkSoft;
+    ctx.font = '500 15px Arial, sans-serif';
+    ctx.textBaseline='top';
+    ctx.fillText(it.label, bx+barW/2, baseline+10);
+  });
+  ctx.textAlign='left';
+}
+function chartDrawDonut(ctx, area, segments){
+  const cx = area.x + area.w*0.32, cy = area.y + area.h/2, r = Math.min(area.w*0.32, area.h/2)-6, rInner=r*0.58;
+  const total = segments.reduce((s,x)=>s+x.value,0) || 1;
+  let start = -Math.PI/2;
+  segments.forEach(seg=>{
+    const angle = (seg.value/total)*Math.PI*2;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,start,start+angle);
+    ctx.closePath(); ctx.fillStyle = seg.color; ctx.fill();
+    start += angle;
+  });
+  ctx.beginPath(); ctx.arc(cx,cy,rInner,0,Math.PI*2); ctx.fillStyle=CHART_COLORS.panel; ctx.fill();
+  ctx.fillStyle = CHART_COLORS.ink; ctx.font='bold 24px Arial, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(fmt(total,0)+'h', cx, cy);
+  let ly = area.y + 14;
+  const lx = area.x + area.w*0.62;
+  ctx.textAlign='left'; ctx.textBaseline='middle';
+  segments.forEach(seg=>{
+    ctx.fillStyle = seg.color; chartRoundRect(ctx, lx, ly, 16,16,4); ctx.fill();
+    ctx.fillStyle = CHART_COLORS.ink; ctx.font='600 17px Arial, sans-serif';
+    ctx.fillText(seg.label, lx+24, ly+8);
+    ctx.fillStyle = CHART_COLORS.inkSoft; ctx.font='15px Arial, sans-serif';
+    ctx.fillText(fmt(seg.value,0)+' h ('+Math.round(seg.value/total*100)+' %)', lx+24, ly+30);
+    ly += 54;
+  });
+}
+function chartDrawGauge(ctx, area, score){
+  const cx = area.x + area.w/2, cy = area.y + area.h*0.82, r = Math.min(area.w/2-10, area.h*0.72);
+  const zones = [[0,60,CHART_COLORS.blue],[60,80,CHART_COLORS.green],[80,95,CHART_COLORS.amber],[95,100,CHART_COLORS.red]];
+  const toRad = deg => deg*Math.PI/180;
+  zones.forEach(([a,b,color])=>{
+    const a1 = toRad(180 - (a/100)*180), a2 = toRad(180 - (b/100)*180);
+    ctx.beginPath(); ctx.arc(cx,cy,r,a1,a2,true);
+    ctx.strokeStyle = color; ctx.lineWidth=20; ctx.lineCap='butt'; ctx.stroke();
+  });
+  const ang = toRad(180-(score/100)*180);
+  const nx = cx + (r-28)*Math.cos(ang), ny = cy - (r-28)*Math.sin(ang);
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(nx,ny);
+  ctx.strokeStyle = CHART_COLORS.navy; ctx.lineWidth=5; ctx.lineCap='round'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,8,0,Math.PI*2); ctx.fillStyle=CHART_COLORS.navy; ctx.fill();
+  ctx.fillStyle = CHART_COLORS.ink; ctx.font='bold 38px Arial, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  ctx.fillText(String(score), cx, cy-16);
+  ctx.fillStyle = CHART_COLORS.inkSoft; ctx.font='15px Arial, sans-serif';
+  ctx.fillText('score de tension / 100', cx, cy+12);
+}
+
+function chartStatColor(status){
+  if(status==='SOUS-CHARGE') return CHART_COLORS.blue;
+  if(status==='ZONE CIBLE'||status==='CIBLE') return CHART_COLORS.green;
+  if(status==='VIGILANCE') return CHART_COLORS.amber;
+  if(status==='SURCHARGE') return CHART_COLORS.red;
+  return CHART_COLORS.inkFaint;
+}
+function chartDrawStatGrid(ctx, area, items, cols){
+  const rows = Math.ceil(items.length/cols);
+  const gapX=14, gapY=12;
+  const cw = (area.w-gapX*(cols-1))/cols, ch = (area.h-gapY*(rows-1))/rows;
+  items.forEach((it,i)=>{
+    const col = i%cols, row = Math.floor(i/cols);
+    const x = area.x + col*(cw+gapX), y = area.y + row*(ch+gapY);
+    chartRoundRect(ctx, x, y, cw, ch, 8);
+    ctx.fillStyle = CHART_COLORS.panel; ctx.fill();
+    ctx.lineWidth=1.25; ctx.strokeStyle = CHART_COLORS.border; ctx.stroke();
+    ctx.fillStyle = it.color || CHART_COLORS.accent;
+    chartRoundRect(ctx, x, y, 4, ch, 2); ctx.fill();
+    ctx.fillStyle = CHART_COLORS.inkSoft;
+    ctx.font = '600 12.5px Arial, sans-serif';
+    ctx.textAlign='left'; ctx.textBaseline='top';
+    ctx.fillText(it.label.toUpperCase(), x+15, y+11);
+    ctx.fillStyle = it.valueColor || CHART_COLORS.ink;
+    ctx.font = 'bold 21px Arial, sans-serif';
+    ctx.textBaseline='alphabetic';
+    ctx.fillText(it.value, x+15, y+ch-13);
+  });
+}
+
+function buildDashboardChartPNG(){
+  const d = DB.dash;
+  const W=1400, statH=372, chartH=740, gapSection=20;
+  const H = statH+gapSection+chartH;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = CHART_COLORS.bg; ctx.fillRect(0,0,W,H);
+
+  /* ---- Bandeau d'indicateurs (mêmes chiffres que les cartes du Dashboard, + indicateurs financiers) ---- */
+  const statArea = { x:0, y:0, w:W, h:statH };
+  chartDrawStatGrid(ctx, statArea, [
+    { label:'Période étudiée (Horizon)', value:params.horizon||'—', color:CHART_COLORS.navy },
+    { label:'Charge totale', value:fmt(d.chargeTotale,0)+' h', color:CHART_COLORS.blue },
+    { label:'Capacité utile équipe', value:fmt(d.capaciteUtileEquipe,0)+' h', color:CHART_COLORS.accent },
+    { label:'Taux de charge équipe', value:fmtPct(d.tauxChargeEquipe), color:CHART_COLORS.navy },
+    { label:'Statut global', value:d.statutGlobal||'—', color:chartStatColor(d.statutGlobal), valueColor:chartStatColor(d.statutGlobal) },
+    { label:'Capacité totale brute', value:fmt(d.capaciteTotaleBrute,0)+' h', color:CHART_COLORS.blue },
+    { label:'Charge flux', value:fmt(d.chargeFlux,0)+' h', color:CHART_COLORS.accent },
+    { label:'Charge projets', value:fmt(d.chargeProjetsTotal,0)+' h', color:CHART_COLORS.navy },
+    { label:'Respect SLA moyen', value:fmtPct(d.respectSLAmoyen), color:CHART_COLORS.green },
+    { label:'Couverture capacité', value:fmtPct(d.ratioCapCharge), color:CHART_COLORS.blue },
+    { label:'Nombre de personnes', value:String(d.nbPersonnes), color:CHART_COLORS.navy },
+    { label:'ETP actuelle', value:fmt(d.ETPactuel,2), color:CHART_COLORS.accent },
+    { label:'ETPT actuelle', value:fmt(d.ETPTactuel,2), color:CHART_COLORS.accent },
+    { label:'ETP requis', value:fmt(d.ETPrequis,2), color:CHART_COLORS.red },
+    { label:'ETPT requis', value:fmt(d.ETPTrequis,2), color:CHART_COLORS.red },
+    { label:'Masse salariale (période)', value:d.masseSalarialePeriode>0? fmtMoney(d.masseSalarialePeriode) : '—', color:CHART_COLORS.green },
+    { label:'Coût sous-util. indiv.', value:d.coutSousUtilisationTotal>0? fmtMoney(d.coutSousUtilisationTotal) : '—', color:CHART_COLORS.amber },
+    { label:"Coût du besoin en ETP", value:d.coutBesoinETP>0? fmtMoney(d.coutBesoinETP) : '—', color:CHART_COLORS.red },
+  ], 6);
+
+  /* ---- Graphiques (mêmes visuels que le Dashboard : capacité/charge, répartition, tension, alertes) ---- */
+  const chartY = statH+gapSection;
+  const gap=22, colW=(W-gap)/2, rowH=(chartH-gap)/2;
+
+  const p1 = chartPanelFrame(ctx, 0, chartY, colW, rowH, 'Capacité vs charge (h)');
+  chartDrawBars(ctx, p1, [
+    { label:'Capacité utile', value:d.capaciteUtileEquipe, valueLabel:fmt(d.capaciteUtileEquipe,0)+' h', color:CHART_COLORS.accent },
+    { label:'Charge totale', value:d.chargeTotale, valueLabel:fmt(d.chargeTotale,0)+' h', color:CHART_COLORS.blue },
+  ]);
+
+  const p2 = chartPanelFrame(ctx, colW+gap, chartY, colW, rowH, 'Répartition de la charge');
+  chartDrawDonut(ctx, p2, [
+    { label:'Flux', value:Math.max(d.chargeFlux,0.0001), color:CHART_COLORS.accent },
+    { label:'Projets', value:Math.max(d.chargeProjetsTotal,0.0001), color:CHART_COLORS.navy },
+    { label:'Activité', value:Math.max(d.chargeActivite,0.0001), color:CHART_COLORS.blue },
+  ]);
+
+  const p3 = chartPanelFrame(ctx, 0, chartY+rowH+gap, colW, rowH, 'Score de tension');
+  chartDrawGauge(ctx, p3, d.scoreTension);
+
+  const p4 = chartPanelFrame(ctx, colW+gap, chartY+rowH+gap, colW, rowH, 'Alertes');
+  chartDrawBars(ctx, p4, [
+    { label:'Flux s.ress.', value:d.fluxSansRessource, valueLabel:String(d.fluxSansRessource), color:CHART_COLORS.red },
+    { label:'Flux cap.insuf.', value:d.fluxCapaciteInsuffisante, valueLabel:String(d.fluxCapaciteInsuffisante), color:CHART_COLORS.amber },
+    { label:'SLA en risque', value:d.fluxSLARisque, valueLabel:String(d.fluxSLARisque), color:CHART_COLORS.blue },
+    { label:'Projets risque', value:d.projetsRisque, valueLabel:String(d.projetsRisque), color:CHART_COLORS.navy },
+    { label:'Patr. s.ress.', value:d.activiteSansRessource, valueLabel:String(d.activiteSansRessource), color:CHART_COLORS.red },
+    { label:'Patr. cap.insuf.', value:d.activiteCapaciteInsuffisante, valueLabel:String(d.activiteCapaciteInsuffisante), color:CHART_COLORS.amber },
+  ]);
+
+  return new Promise((resolve,reject)=>{
+    canvas.toBlob(async (blob)=>{
+      if(!blob){ reject(new Error('Impossible de générer le graphique.')); return; }
+      const buf = await blob.arrayBuffer();
+      resolve({ data:new Uint8Array(buf), width:W, height:H });
+    }, 'image/png');
+  });
+}
+
+async function buildReportBlob(){
+  const D = await loadDocxLib();
+  recalc();
+  const d = DB.dash;
+  const today = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+  const footer = reportFooter(D);
+  const chart = await buildDashboardChartPNG();
+  const chartEmbedW = 620, chartEmbedH = Math.round(chartEmbedW * chart.height/chart.width);
+
+  /* ---- Page de garde + synthèse exécutive ---- */
+  const cover = [
+    new D.Paragraph({ text:'', spacing:{ before:400 } }),
+    new D.Paragraph({ children:[ new D.TextRun({ text:'RAPPORT DE PILOTAGE & RÉGULATION', bold:true, size:40, color:NAVY }) ], alignment:D.AlignmentType.CENTER }),
+    new D.Paragraph({ children:[ new D.TextRun({ text:'Cockpit de charge — Capacité, Flux et Projets', size:22, color:INKSOFT }) ], alignment:D.AlignmentType.CENTER, spacing:{ before:100, after:30 } }),
+    new D.Paragraph({ children:[ new D.TextRun({ text:`Période étudiée : ${params.horizon}  ·  ${fmt(DB.heuresETP,1)} h ETP sur la période`, size:16, color:INKSOFT }) ], alignment:D.AlignmentType.CENTER, spacing:{ after:10 } }),
+    new D.Paragraph({ children:[ new D.TextRun({ text:`Statut global : ${d.statutGlobal||'—'}  ·  Score de tension : ${d.scoreTension}/100  ·  Édité le ${today}`, size:19, color:ACCENT, bold:true }) ], alignment:D.AlignmentType.CENTER, spacing:{ before:100, after:260 } }),
+    new D.Paragraph({
+      alignment: D.AlignmentType.CENTER,
+      children:[ new D.ImageRun({ type:'png', data: chart.data, transformation:{ width:chartEmbedW, height:chartEmbedH } }) ]
+    }),
+    new D.Paragraph({ children:[ new D.PageBreak() ] }),
+
+    reportHeading(D, 'Synthèse exécutive', D.HeadingLevel.HEADING_1),
+  ];
+
+  const usedAnalysis = computeRuleBasedAnalysis();
+  const analysisSourceNote = "Synthèse générée automatiquement (analyse par règles, sans appel réseau ni service externe).";
+  cover.push(reportPara(D, analysisSourceNote, { italics:true, color:INKSOFT, size:16 }));
+  cover.push(reportPara(D, usedAnalysis.synthese));
+  if((usedAnalysis.risques||[]).length){
+    cover.push(reportHeading(D, 'Risques identifiés', D.HeadingLevel.HEADING_2));
+    usedAnalysis.risques.forEach(r=> cover.push(reportBullet(D, `[${(r.gravite||'').toUpperCase()}] ${r.titre||''} — ${r.detail||''}`)));
+  }
+  if((usedAnalysis.recommandations||[]).length){
+    cover.push(reportHeading(D, 'Recommandations', D.HeadingLevel.HEADING_2));
+    usedAnalysis.recommandations.forEach(x=> cover.push(reportBullet(D, x)));
+  }
+  if((usedAnalysis.leviers_court_terme||[]).length){
+    cover.push(reportHeading(D, 'Leviers court terme', D.HeadingLevel.HEADING_2));
+    usedAnalysis.leviers_court_terme.forEach(x=> cover.push(reportBullet(D, x)));
+  }
+  if((usedAnalysis.leviers_moyen_terme||[]).length){
+    cover.push(reportHeading(D, 'Leviers moyen terme', D.HeadingLevel.HEADING_2));
+    usedAnalysis.leviers_moyen_terme.forEach(x=> cover.push(reportBullet(D, x)));
+  }
+
+  cover.push(reportHeading(D, 'Tableau de bord', D.HeadingLevel.HEADING_1));
+  cover.push(buildReportTable(D, ['Indicateur','Valeur'], [
+    ['Capacité totale brute équipe', fmt(d.capaciteTotaleBrute)+' h'],
+    ['Capacité utile équipe', fmt(d.capaciteUtileEquipe)+' h'],
+    ['Charge flux', fmt(d.chargeFlux)+' h'],
+    ['Charge projets', fmt(d.chargeProjetsTotal)+' h'],
+    ['Charge activites', fmt(d.chargeActivite)+' h'],
+    ['Charge totale', fmt(d.chargeTotale)+' h'],
+    ['Taux de charge équipe', fmtPct(d.tauxChargeEquipe)],
+    ['Couverture capacité (capacité/charge)', fmtPct(d.ratioCapCharge)],
+    ['Respect SLA moyen', fmtPct(d.respectSLAmoyen)],
+    ['Score de tension', d.scoreTension+' / 100'],
+    ['Statut global', d.statutGlobal||'—'],
+    ['ETP actuelle', fmt(d.ETPactuel,2)],
+    ['ETPT actuelle', fmt(d.ETPTactuel,2)],
+    ['ETP requis', fmt(d.ETPrequis,2)],
+    ['ETPT requis', fmt(d.ETPTrequis,2)],
+    ['Nombre de personnes dans l\u2019équipe', String(d.nbPersonnes)],
+    ['Masse salariale (période)', d.masseSalarialePeriode>0? fmtMoney(d.masseSalarialePeriode) : '—'],
+    ['Coût sous-utilisation individuelle', d.coutSousUtilisationTotal>0? fmtMoney(d.coutSousUtilisationTotal) : '—'],
+    ['Coût horaire moyen équipe', d.coutHoraireMoyenEquipe>0? fmtMoney(d.coutHoraireMoyenEquipe,2) : '—'],
+    ['Coût du besoin en ETP manquant', d.coutBesoinETP>0? fmtMoney(d.coutBesoinETP) : '—'],
+  ], [55,45]));
+  if(d.coutSousUtilisationTotal>0 && d.statutGlobal==='SURCHARGE'){
+    cover.push(reportPara(D, "Note : le Coût sous-utilisation individuelle et le Statut global SURCHARGE peuvent coexister — ils mesurent des choses différentes (la situation de chaque personne vs. la moyenne de l'équipe). Ce cas signale généralement un déséquilibre de répartition de la charge plutôt qu'un manque d'effectif global.", { italics:true, color:INKSOFT, size:16 }));
+  }
+
+  cover.push(reportHeading(D, 'Alertes prioritaires', D.HeadingLevel.HEADING_2));
+  cover.push(buildReportTable(D, ['Type','Nombre'], [
+    ['Flux sans ressource', String(d.fluxSansRessource)],
+    ['Flux en capacité insuffisante', String(d.fluxCapaciteInsuffisante)],
+    ['Flux SLA en risque', String(d.fluxSLARisque)],
+    ['Projets à risque', String(d.projetsRisque)],
+    ['Activité sans ressource', String(d.activiteSansRessource)],
+    ['Activité en capacité insuffisante', String(d.activiteCapaciteInsuffisante)],
+  ], [70,30]));
+
+  /* ---- Saisonnalité : uniquement si au moins une période a été importée dans l'onglet dédié ---- */
+  if(seasonSnapshots.length){
+    const ordered = seasonOrderedSnapshots();
+    const seasonAnalysis = computeSeasonAutoAnalysis(ordered);
+
+    cover.push(reportHeading(D, 'Saisonnalité & évolution', D.HeadingLevel.HEADING_1));
+    cover.push(buildReportTable(D, ['Période','Taux de charge','Score tension','Statut','ETP requis'],
+      ordered.map(s=>[ s.label+(s.isCurrent?' (actuel)':''), fmtPct(s.kpis.tauxChargeEquipe), String(s.kpis.scoreTension), s.kpis.statutGlobal||'—', fmt(s.kpis.ETPrequis,2) ]),
+      [30,20,17,18,15]));
+
+    if(seasonAnalysis){
+      const a = seasonAnalysis;
+      cover.push(reportMixedPara(D, [
+        { text:`Sur les ${ordered.length} périodes comparées (de ` },
+        { text:a.first.label, bold:true },
+        { text:` à ` },
+        { text:a.last.label, bold:true },
+        { text:`), le taux de charge de l'équipe est ${a.tauxTrend} (${a.deltaTaux>=0?'+':''}${Math.round(a.deltaTaux*100)} points, de ${fmtPct(a.first.kpis.tauxChargeEquipe)} à ${fmtPct(a.last.kpis.tauxChargeEquipe)}), et le score de tension est ${a.scoreTrend} (${a.deltaScore>=0?'+':''}${Math.round(a.deltaScore)} points, de ${a.first.kpis.scoreTension} à ${a.last.kpis.scoreTension}/100). Le besoin en ETP requis est ${a.etpTrend} sur la période.` },
+      ]));
+      cover.push(reportMixedPara(D, [
+        { text:'La période la plus tendue est ' },
+        { text:a.worst.label, bold:true },
+        { text:` (score ${a.worst.kpis.scoreTension}/100, statut ${a.worst.kpis.statutGlobal||'—'}) ; la plus détendue est ` },
+        { text:a.best.label, bold:true },
+        { text:` (score ${a.best.kpis.scoreTension}/100).` },
+      ]));
+    }
+  }
+
+  /* ---- Annexes (paysage) ---- */
+  const annexes = [];
+  const addAnnex = (letter, title, table)=>{
+    if(annexes.length) annexes.push(new D.Paragraph({ children:[ new D.PageBreak() ] }));
+    annexes.push(reportHeading(D, `Annexe ${letter} — ${title}`, D.HeadingLevel.HEADING_1));
+    annexes.push(table);
+  };
+
+  addAnnex('A', 'Paramètres', buildReportTable(D, ['Paramètre','Valeur','Description'],
+    paramDefs.map(([key,label,desc])=> [label, String(params[key]), desc]), [28,14,58]));
+
+  const resRows = DB.res.filter(r=>r.nom).map(r=> [
+    r.nom, r.role||'—', r.niveau||'—', fmt(r.capaciteUtile), fmt(r.chargeTotale), fmtPct(r.tauxIndiv), r.statut||'—'
+  ]);
+  addAnnex('B', 'Ressources', buildReportTable(D,
+    ['Nom','Rôle','Niveau','Cap. utile (h)','Charge totale (h)','Taux indiv.','Statut'],
+    resRows.length? resRows : [['—','—','—','—','—','—','—']], [16,18,12,14,16,12,12]));
+
+  const fluxRows = DB.flux.filter(f=>f.type).map(f=> [
+    f.type, f.priorite||'—', String(f.nbHabilites), fmt(f.capHabilitee), fmt(f.chargeH), fmtPct(f.niveauCharge), fmtPct(f.indiceSLA), f.alerte||'—'
+  ]);
+  addAnnex('C', 'Flux', buildReportTable(D,
+    ['Type flux','Priorité','Nb habilités','Cap. habilitée (h)','Charge (h)','Charge %','SLA %','Alerte'],
+    fluxRows.length? fluxRows : [['—','—','—','—','—','—','—','—']], [16,10,12,14,12,12,12,12]));
+
+  const activeResNames = resources.map(r=>r.nom).filter(Boolean);
+  const matRows = flux.map((f,fi)=> f.type ? [f.type, ...activeResNames.map((n,ni)=>{
+    const ri = resources.findIndex(r=>r.nom===n);
+    return matrix[fi][ri] ? 'Oui' : '—';
+  })] : null).filter(Boolean);
+  if(activeResNames.length && matRows.length){
+    const widths = [16, ...activeResNames.map(()=> Math.max(6, 84/activeResNames.length))];
+    addAnnex('D', 'Matrice Flux × Ressources', buildReportTable(D, ['Flux', ...activeResNames], matRows, widths));
+  }
+
+  const projRows = DB.proj.filter(p=>p.projet).map(p=> [
+    p.projet, p.lot||'—', p.priorite||'—', fmt(p.chargeRestante,0), p.echeance||'—',
+    p.joursRestants!==null? String(p.joursRestants) : '—', fmt(num(p.allocation),0), (p.ressources&&p.ressources.length? p.ressources.join(', ') : '—'), p.statut||'—'
+  ]);
+  addAnnex('E', 'Projets', buildReportTable(D,
+    ['Projet','Lot/Phase','Priorité','Charge restante','Échéance','Jours restants','Allocation','Ressource','Statut'],
+    projRows.length? projRows : [['—','—','—','—','—','—','—','—','—']], [14,12,8,11,11,11,10,12,11]));
+
+  // Annexe F — Activité (ratio standard) : agrégat uniquement, pas de détail par ressource (cohérent avec le
+  // choix déjà fait pour la masse salariale : les données individuelles restent dans l'app).
+  const actRows = (DB.activites||[]).filter(p=>p.nom).map(p=> [
+    p.nom, p.unite||'—', fmt(num(p.quantite),0), fmt(num(p.ratio),2), fmt(p.chargeH,0),
+    p.nbHabilites!=null? String(p.nbHabilites) : '—', p.alerte||'—',
+    p.ratioActuel>0? fmt(p.ratioActuel,0) : '—',
+  ]);
+  addAnnex('F', 'Activité (ratio standard)', buildReportTable(D,
+    ['Activité','Unité','Quantité','Ratio norme (u/agent)','Charge période (h)','Nb habilités','Alerte','Ratio actuel (u/ETP)'],
+    actRows.length? actRows : [['—','—','—','—','—','—','—','—']], [18,8,10,13,13,10,12,14]));
+
+  /* Annexe G — Aide : reprend telle quelle la documentation de l'onglet Aide
+     (mode d'emploi, glossaire, méthodes de calcul) pour que le rapport soit
+     compréhensible et exploitable sans avoir besoin de rouvrir l'application. */
+  annexes.push(new D.Paragraph({ children:[ new D.PageBreak() ] }));
+  annexes.push(reportHeading(D, 'Annexe G — Aide : mode d\u2019emploi, glossaire et méthodes de calcul', D.HeadingLevel.HEADING_1));
+
+  annexes.push(reportHeading(D, 'Mode d\u2019emploi', D.HeadingLevel.HEADING_2));
+  helpItems.forEach((h,i)=> annexes.push(reportPara(D, `${i+1}. ${h[0]} — ${h[1]}`)));
+
+  annexes.push(reportHeading(D, 'Glossaire', D.HeadingLevel.HEADING_2));
+  annexes.push(buildReportTable(D, ['Terme','Définition'], glossaryItems.map(([t,def])=>[t,def]), [22,78]));
+
+  annexes.push(reportHeading(D, 'Méthodes de calcul', D.HeadingLevel.HEADING_2));
+  formulaGroups.forEach(group=>{
+    annexes.push(reportHeading(D, group.title, D.HeadingLevel.HEADING_3));
+    annexes.push(buildReportTable(D, ['Indicateur','Formule','Explication'], group.rows, [18,34,48]));
+  });
+
+  const doc = new D.Document({
+    sections: [
+      { properties:{ page:{ size:{ orientation: D.PageOrientation.PORTRAIT } } }, footers:{ default: footer }, children: cover },
+      { properties:{ page:{ size:{ orientation: D.PageOrientation.LANDSCAPE } } }, footers:{ default: footer }, children: annexes },
+    ]
+  });
+
+  return D.Packer.toBlob(doc);
+}
+
+async function generateFullReport(){
+  const btn = document.getElementById('btnReport');
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="ai-spinner"></span> Génération du rapport…';
+  try{
+    const blob = await buildReportBlob();
+    downloadBlob(blob, `Rapport-Pilotage-Regulation-${new Date().toISOString().slice(0,10)}.docx`);
+    showToast('Rapport Word généré ✓');
+  }catch(err){
+    console.error(err);
+    showToast("Échec de la génération du rapport : "+(err.message||'erreur inconnue'), true);
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+}
+document.getElementById('btnReport').addEventListener('click', generateFullReport);
+
+/* =====================================================================
+   SAUVEGARDE — Export / Import JSON
+===================================================================== */
+function showToast(msg, isError){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError?' error':'');
+  clearTimeout(showToast._tm);
+  showToast._tm = setTimeout(()=> t.classList.remove('show'), 3200);
+}
+
+function exportData(){
+  const payload = {
+    _app:'Pilotage & Régulation', _version:1, _exportedAt:new Date().toISOString(),
+    params, resources, flux, projets, matrix, activites, matrixActivite
+  };
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0,10);
+  a.href = url; a.download = `pilotage-regulation-${stamp}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Export JSON téléchargé ✓');
+}
+
+function padArray(arr, len, blankFn){
+  const out = [];
+  for(let i=0;i<len;i++){ out.push(arr && arr[i] ? Object.assign(blankFn(), arr[i]) : blankFn()); }
+  return out;
+}
+
+function importData(data){
+  if(!data || typeof data!=='object') throw new Error('Fichier invalide');
+  if(data.params) Object.assign(params, data.params);
+
+  const newRes = padArray(data.resources, N_RES, blankRes);
+  const newFlux = padArray(data.flux, N_FLUX, blankFlux);
+  const newProj = padArray(data.projets, N_PROJ, blankProj);
+  const newPatr = padArray(data.activites, N_ACTIVITE, blankActivite); // absent dans les anciens exports : padArray renvoie des lignes vides
+  // Migrate older exports that used a single `ressource` string instead of `ressources[]`
+  newProj.forEach(p=>{
+    if((!Array.isArray(p.ressources) || !p.ressources.length) && p.ressource){ p.ressources = [p.ressource]; }
+    if(!Array.isArray(p.ressources)) p.ressources = [];
+    delete p.ressource;
+  });
+  resources.splice(0, resources.length, ...newRes);
+  flux.splice(0, flux.length, ...newFlux);
+  projets.splice(0, projets.length, ...newProj);
+  activites.splice(0, activites.length, ...newPatr);
+
+  for(let fi=0; fi<N_FLUX; fi++){
+    const srcRow = (data.matrix && data.matrix[fi]) ? data.matrix[fi] : [];
+    const newRow = [];
+    for(let ri=0; ri<N_RES; ri++){ newRow.push(!!srcRow[ri]); }
+    matrix[fi].splice(0, matrix[fi].length, ...newRow);
+  }
+  for(let pi=0; pi<N_ACTIVITE; pi++){
+    const srcRow = (data.matrixActivite && data.matrixActivite[pi]) ? data.matrixActivite[pi] : [];
+    const newRow = [];
+    for(let ri=0; ri<N_RES; ri++){ newRow.push(!!srcRow[ri]); }
+    matrixActivite[pi].splice(0, matrixActivite[pi].length, ...newRow);
+  }
+
+  refreshParamInputs();
+  renderResourceRows();
+  renderFluxRows();
+  renderProjetsRows();
+  renderActiviteRows();
+  rebuildProjRessourceOptions();
+  rebuildMatrixHeaders();
+  rebuildMatrixActiviteHeaders();
+  recalc();
+  refresh();
+}
+
+function refreshParamInputs(){
+  document.querySelectorAll('#paramGrid [data-key]').forEach(input=>{
+    input.value = params[input.dataset.key];
+  });
+}
+
+function setupSaveLoad(){
+  document.getElementById('btnExport').addEventListener('click', exportData);
+  const fileInput = document.getElementById('fileImport');
+  document.getElementById('btnImport').addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', ()=>{
+    const file = fileInput.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const data = JSON.parse(reader.result);
+        importData(data);
+        showToast('Données importées ✓');
+      }catch(err){
+        console.error(err);
+        showToast("Échec de l'import : fichier JSON invalide", true);
+      }
+      fileInput.value = '';
+    };
+    reader.onerror = ()=>{ showToast('Impossible de lire le fichier', true); fileInput.value=''; };
+    reader.readAsText(file);
+  });
+}
+
+/* =====================================================================
+   SAISONNALITÉ — comparaison de plusieurs sauvegardes JSON dans le temps
+===================================================================== */
+let seasonSnapshots = []; // { id, label, date:Date|null, data:{params,resources,flux,projets,matrix}, kpis }
+
+function snapshotKPIsFromData(data){
+  const P = Object.assign({...params}, data.params||{});
+  const RES = padArray(data.resources, N_RES, blankRes);
+  const FLX = padArray(data.flux, N_FLUX, blankFlux);
+  const PRJ = padArray(data.projets, N_PROJ, blankProj);
+  PRJ.forEach(p=>{
+    if((!Array.isArray(p.ressources) || !p.ressources.length) && p.ressource){ p.ressources = [p.ressource]; }
+    if(!Array.isArray(p.ressources)) p.ressources = [];
+  });
+  const MAT = [];
+  for(let fi=0; fi<N_FLUX; fi++){
+    const srcRow = (data.matrix && data.matrix[fi]) ? data.matrix[fi] : [];
+    const row = []; for(let ri=0; ri<N_RES; ri++){ row.push(!!srcRow[ri]); }
+    MAT.push(row);
+  }
+  const result = computeAll(P, RES, FLX, PRJ, MAT);
+  return result.dash;
+}
+
+function currentStateAsSnapshot(){
+  return {
+    id:'current', label:'Actuel (données en cours)', date:new Date(), isCurrent:true,
+    data:{ params, resources, flux, projets, matrix },
+    kpis: DB.dash,
+  };
+}
+
+function addSeasonSnapshot(fileName, data){
+  let date = null;
+  if(data._exportedAt){ const d = new Date(data._exportedAt); if(!isNaN(d)) date = d; }
+  const label = date
+    ? date.toLocaleDateString('fr-FR', { month:'long', year:'numeric' })
+    : fileName.replace(/\.json$/i,'');
+  seasonSnapshots.push({
+    id: 's'+Date.now()+Math.random().toString(36).slice(2,7),
+    label, date, isCurrent:false,
+    data, kpis: snapshotKPIsFromData(data),
+  });
+}
+
+function seasonOrderedSnapshots(){
+  const withCurrent = [...seasonSnapshots, currentStateAsSnapshot()];
+  return withCurrent.sort((a,b)=>{
+    if(a.date && b.date) return a.date-b.date;
+    if(a.date) return -1;
+    if(b.date) return 1;
+    return 0;
+  });
+}
+
+function setupSeasonTab(){
+  const fileInput = document.getElementById('seasonFileInput');
+  document.getElementById('btnSeasonImport').addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', ()=>{
+    const files = Array.from(fileInput.files||[]);
+    if(!files.length) return;
+    let done=0, errors=0;
+    files.forEach(file=>{
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{ addSeasonSnapshot(file.name, JSON.parse(reader.result)); }
+        catch(e){ errors++; }
+        done++;
+        if(done===files.length){
+          renderSeason();
+          showToast(errors? `${files.length-errors} fichier(s) importé(s), ${errors} en échec` : `${files.length} période(s) importée(s) ✓`, !!errors);
+        }
+      };
+      reader.onerror = ()=>{ errors++; done++; if(done===files.length) renderSeason(); };
+      reader.readAsText(file);
+    });
+    fileInput.value = '';
+  });
+  document.getElementById('btnSeasonClear').addEventListener('click', ()=>{
+    if(!seasonSnapshots.length) return;
+    if(!confirm('Retirer toutes les périodes importées de la comparaison ?')) return;
+    seasonSnapshots = [];
+    renderSeason();
+    showToast('Périodes importées effacées');
+  });
+}
+
+function renderSeason(){
+  const hasImports = seasonSnapshots.length>0;
+  document.getElementById('seasonEmpty').style.display = hasImports? 'none':'block';
+  document.getElementById('seasonContent').style.display = hasImports? 'block':'none';
+  if(!hasImports) return;
+
+  const ordered = seasonOrderedSnapshots();
+
+  const tbody = document.querySelector('#tblSeason tbody');
+  tbody.innerHTML = '';
+  ordered.forEach(snap=>{
+    const k = snap.kpis;
+    const tr = el('tr');
+    tr.innerHTML = `
+      <td>${snap.label}${snap.isCurrent?' <span class="badge neutral" style="margin-left:4px">live</span>':''}</td>
+      <td class="num">${fmt(k.capaciteUtileEquipe)}</td>
+      <td class="num">${fmt(k.chargeTotale)}</td>
+      <td class="num">${fmtPct(k.tauxChargeEquipe)}</td>
+      <td class="num">${k.scoreTension}</td>
+      <td>${badgeHtml(k.statutGlobal)}</td>
+      <td class="num">${fmt(k.ETPrequis,2)}</td>
+      <td class="num">${fmtPct(k.respectSLAmoyen)}</td>
+      <td class="num">${k.masseSalarialePeriode>0? fmtMoney(k.masseSalarialePeriode) : '—'}</td>
+      <td class="num">${k.coutSousUtilisationTotal>0? fmtMoney(k.coutSousUtilisationTotal) : '—'}</td>
+      <td class="num">${k.coutBesoinETP>0? fmtMoney(k.coutBesoinETP) : '—'}</td>
+      <td>${snap.isCurrent? '' : `<button type="button" class="row-del" data-season-del="${snap.id}" title="Retirer cette période">🗑</button>`}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('[data-season-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      seasonSnapshots = seasonSnapshots.filter(s=> s.id !== btn.dataset.seasonDel);
+      renderSeason();
+    });
+  });
+
+  renderSeasonCharts(ordered);
+  renderSeasonAutoAnalysis(ordered);
+}
+
+/* ---- Mini SVG line-chart, no dependency, consistent with the app's own visual style ---- */
+function seasonLineChartSVG(ordered, key, opts){
+  const W=520, H=190, padL=44, padR=16, padT=16, padB=34;
+  const vals = ordered.map(s=> opts.get? opts.get(s.kpis) : s.kpis[key]);
+  const max = Math.max(...vals, opts.minMax||0), min = Math.min(0, ...vals);
+  const range = (max-min)||1;
+  const x = i => padL + (i/(Math.max(ordered.length-1,1))) * (W-padL-padR);
+  const y = v => H-padB - ((v-min)/range) * (H-padT-padB);
+  const pts = vals.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
+  const areaPts = `${padL},${H-padB} ${pts} ${x(vals.length-1)},${H-padB}`;
+  const gridY = [0,0.25,0.5,0.75,1].map(f=> H-padB-f*(H-padT-padB));
+  let grid = gridY.map(gy=> `<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" stroke="#E2E8F0" stroke-width="1"/>`).join('');
+  let labels = vals.map((v,i)=> i%Math.ceil(vals.length/6||1)===0 || i===vals.length-1 ? `<text x="${x(i)}" y="${H-10}" font-size="9.5" fill="#94A3B8" text-anchor="middle" font-family="Helvetica,Arial,sans-serif">${ordered[i].label.split(' ')[0].slice(0,8)}</text>` : '').join('');
+  let dots = vals.map((v,i)=> `<circle cx="${x(i)}" cy="${y(v)}" r="${ordered[i].isCurrent?4.5:3.5}" fill="${ordered[i].isCurrent?'#0EA5E9':'#0369A1'}" stroke="#fff" stroke-width="1.5"/>`).join('');
+  let valueLabels = vals.map((v,i)=> `<text x="${x(i)}" y="${y(v)-10}" font-size="10" fill="#1E293B" text-anchor="middle" font-weight="700" font-family="IBM Plex Mono,monospace">${opts.fmt? opts.fmt(v) : Math.round(v)}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
+    ${grid}
+    <polyline points="${areaPts}" fill="rgba(3,105,161,0.08)" stroke="none"/>
+    <polyline points="${pts}" fill="none" stroke="#0369A1" stroke-width="2.5"/>
+    ${dots}${valueLabels}${labels}
+  </svg>`;
+}
+function renderSeasonCharts(ordered){
+  const wrap = document.getElementById('seasonCharts');
+  const charts = [
+    ['Taux de charge équipe', 'tauxChargeEquipe', { fmt:v=>Math.round(v*100)+'%' }],
+    ['Score de tension', 'scoreTension', { fmt:v=>Math.round(v), minMax:100 }],
+    ['Capacité utile vs Charge totale (h)', null, { get:k=>k.chargeTotale, fmt:v=>fmt(v,0) }],
+    ['ETP requis', 'ETPrequis', { fmt:v=>fmt(v,1) }],
+    ['Masse salariale (période)', 'masseSalarialePeriode', { fmt:v=>fmtMoney(v,0) }],
+    ['Coût sous-util. indiv.', 'coutSousUtilisationTotal', { fmt:v=>fmtMoney(v,0) }],
+    ['Coût du besoin en ETP manquant', 'coutBesoinETP', { fmt:v=>fmtMoney(v,0) }],
+  ];
+  wrap.innerHTML = '';
+  charts.forEach(([title,key,opts])=>{
+    const card = el('div',{class:'card'});
+    card.appendChild(el('div',{class:'panel-title'}, title));
+    card.innerHTML += seasonLineChartSVG(ordered, key, opts);
+    wrap.appendChild(card);
+  });
+}
+
+/* ---- Analyse automatique (déterministe, sans IA) ---- */
+function linTrend(values){
+  const n = values.length; if(n<2) return 0;
+  const xs = values.map((_,i)=>i), xMean=(n-1)/2, yMean=values.reduce((a,b)=>a+b,0)/n;
+  let num=0, den=0;
+  xs.forEach((x,i)=>{ num += (x-xMean)*(values[i]-yMean); den += (x-xMean)**2; });
+  return den? num/den : 0;
+}
+function trendWord(slope, tolerance){
+  if(Math.abs(slope) < tolerance) return 'stable';
+  return slope>0 ? 'en hausse' : 'en baisse';
+}
+function computeSeasonAutoAnalysis(ordered){
+  if(ordered.length<2) return null;
+  const first = ordered[0], last = ordered[ordered.length-1];
+  const tauxSeries = ordered.map(s=>s.kpis.tauxChargeEquipe);
+  const scoreSeries = ordered.map(s=>s.kpis.scoreTension);
+  const etpSeries = ordered.map(s=>s.kpis.ETPrequis);
+  const masseSeries = ordered.map(s=>s.kpis.masseSalarialePeriode||0);
+  const tauxSlope = linTrend(tauxSeries), scoreSlope = linTrend(scoreSeries), etpSlope = linTrend(etpSeries), masseSlope = linTrend(masseSeries);
+  const deltaTaux = last.kpis.tauxChargeEquipe - first.kpis.tauxChargeEquipe;
+  const deltaScore = last.kpis.scoreTension - first.kpis.scoreTension;
+  const deltaMasse = (last.kpis.masseSalarialePeriode||0) - (first.kpis.masseSalarialePeriode||0);
+  const worst = ordered.reduce((a,b)=> b.kpis.scoreTension>a.kpis.scoreTension? b:a);
+  const best = ordered.reduce((a,b)=> b.kpis.scoreTension<a.kpis.scoreTension? b:a);
+  const hasCost = masseSeries.some(v=>v>0);
+  return {
+    ordered, first, last, worst, best, hasCost,
+    tauxTrend: trendWord(tauxSlope,0.005), scoreTrend: trendWord(scoreSlope,0.5), etpTrend: trendWord(etpSlope,0.02), masseTrend: trendWord(masseSlope,1),
+    deltaTaux, deltaScore, deltaMasse,
+  };
+}
+function renderSeasonAutoAnalysis(ordered){
+  const box = document.getElementById('seasonAutoAnalysis');
+  const a = computeSeasonAutoAnalysis(ordered);
+  if(!a){ box.innerHTML = '<p>Importez au moins deux périodes pour dégager une tendance.</p>'; return; }
+  const { first, last, worst, best, tauxTrend, scoreTrend, etpTrend, masseTrend, deltaTaux, deltaScore, deltaMasse, hasCost } = a;
+
+  const coutParagraphe = hasCost ? `
+    <p>La masse salariale de la période est ${masseTrend} (${deltaMasse>=0?'+':''}${fmtMoney(deltaMasse,0)}, de ${fmtMoney(first.kpis.masseSalarialePeriode||0)} à ${fmtMoney(last.kpis.masseSalarialePeriode||0)}).</p>` : '';
+
+  const html = `
+    <p>Sur les ${ordered.length} périodes comparées (de <b>${first.label}</b> à <b>${last.label}</b>), le taux de charge de l'équipe est ${tauxTrend}
+    (${deltaTaux>=0?'+':''}${Math.round(deltaTaux*100)} points, de ${fmtPct(first.kpis.tauxChargeEquipe)} à ${fmtPct(last.kpis.tauxChargeEquipe)}),
+    et le score de tension est ${scoreTrend} (${deltaScore>=0?'+':''}${Math.round(deltaScore)} points, de ${first.kpis.scoreTension} à ${last.kpis.scoreTension}/100).
+    Le besoin en ETP requis est ${etpTrend} sur la période.</p>
+    <p>La période la plus tendue est <b>${worst.label}</b> (score ${worst.kpis.scoreTension}/100, statut ${worst.kpis.statutGlobal||'—'}) ;
+    la plus détendue est <b>${best.label}</b> (score ${best.kpis.scoreTension}/100).</p>${coutParagraphe}
+  `;
+  box.innerHTML = html;
+}
+
+function renderAnalysis(a, targetId){
+  const box = document.getElementById(targetId || 'aiResult');
+  const gravColor = g => g==='haute' ? 'var(--red)' : g==='moyenne' ? 'var(--amber)' : 'var(--blue)';
+  const risques = (a.risques||[]).map(r=>`
+    <div class="risk-card">
+      <div class="rt"><h4>${r.titre||''}</h4><span class="badge" style="background:${gravColor(r.gravite)}22; color:${gravColor(r.gravite)}">${(r.gravite||'').toUpperCase()}</span></div>
+      <p>${r.detail||''}</p>
+    </div>`).join('');
+  const reco = (a.recommandations||[]).map(x=>`<li>${x}</li>`).join('');
+  const court = (a.leviers_court_terme||[]).map(x=>`<li>${x}</li>`).join('');
+  const moyen = (a.leviers_moyen_terme||[]).map(x=>`<li>${x}</li>`).join('');
+
+  box.innerHTML = `
+    <div class="card" style="margin-bottom:14px">
+      <div class="panel-title"><span class="n">◆</span>Synthèse</div>
+      <div class="ai-synth">${a.synthese||'—'}</div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="panel-title"><span class="n">!</span>Risques identifiés</div>
+      <div class="grid grid-2">${risques || '<div class="ai-empty">Aucun risque majeur détecté.</div>'}</div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="panel-title"><span class="n">✓</span>Recommandations</div>
+        <ul class="reco-list">${reco || '<li>—</li>'}</ul>
+      </div>
+      <div class="card">
+        <div class="panel-title"><span class="n">⏱</span>Leviers d'action</div>
+        <div style="margin-bottom:10px"><b style="font-size:12px">Court terme</b><ul class="reco-list">${court || '<li>—</li>'}</ul></div>
+        <div><b style="font-size:12px">Moyen terme</b><ul class="reco-list">${moyen || '<li>—</li>'}</ul></div>
+      </div>
+    </div>`;
+}
+
+/* =====================================================================
+   ANALYSE AUTOMATIQUE — moteur de règles, entièrement local (aucun appel
+   réseau). Produit une structure standard ({synthese, risques,
+   recommandations, leviers_court_terme, leviers_moyen_terme}), affichée
+   via renderAnalysis() et reprise telle quelle dans le rapport Word.
+===================================================================== */
+function computeRuleBasedAnalysis(){
+  const d = DB.dash, p = params;
+  const fluxCapInsuf = DB.flux.filter(f=>f.type && f.alerte==='Capacité insuffisante');
+  const fluxSansRes = DB.flux.filter(f=>f.type && f.alerte==='Aucune ressource');
+  const fluxSlaRisque = DB.flux.filter(f=>f.type && f.alerte==='SLA en risque');
+  const projRisque = DB.proj.filter(pr=>pr.statut==='RISQUE');
+  const resSurcharge = DB.res.filter(r=>r.nom && r.statut==='SURCHARGE');
+  const resSousCharge = DB.res.filter(r=>r.nom && r.statut==='SOUS-CHARGE');
+  const actCapInsuf = (DB.activites||[]).filter(pt=>pt.nom && pt.alerte==='Capacité insuffisante');
+  const actSansRes = (DB.activites||[]).filter(pt=>pt.nom && pt.alerte==='Aucune ressource');
+  const etpGap = d.ETPrequis - d.ETPactuel;
+
+  const namesList = (arr, mapFn, max=4)=>{
+    const names = arr.map(mapFn);
+    return names.length>max ? names.slice(0,max).join(', ')+`, +${names.length-max} autre(s)` : names.join(', ');
+  };
+
+  /* ---- Risques (générés par règle, triés par gravité) ---- */
+  const risques = [];
+  if(d.statutGlobal==='SURCHARGE'){
+    risques.push({ titre:"Équipe globalement en surcharge", gravite:'haute',
+      detail:`Le taux de charge de l'équipe atteint ${fmtPct(d.tauxChargeEquipe)}, au-delà du seuil de surcharge (${fmtPct(p.seuilAmbre)}).` });
+  }else if(d.statutGlobal==='VIGILANCE'){
+    risques.push({ titre:"Équipe en zone de vigilance", gravite:'moyenne',
+      detail:`Le taux de charge de l'équipe (${fmtPct(d.tauxChargeEquipe)}) approche le seuil de surcharge (${fmtPct(p.seuilAmbre)}).` });
+  }
+  if(fluxSansRes.length){
+    risques.push({ titre:`${fluxSansRes.length} flux sans ressource habilitée`, gravite:'haute',
+      detail:`Aucune ressource ne peut absorber : ${namesList(fluxSansRes,f=>f.type)}.` });
+  }
+  if(fluxCapInsuf.length){
+    risques.push({ titre:`${fluxCapInsuf.length} flux en capacité insuffisante`, gravite: fluxCapInsuf.length>=3?'haute':'moyenne',
+      detail:`Charge supérieure à la capacité habilitée sur : ${namesList(fluxCapInsuf,f=>f.type)}.` });
+  }
+  if(fluxSlaRisque.length){
+    risques.push({ titre:`${fluxSlaRisque.length} flux avec un SLA en risque`, gravite: fluxSlaRisque.length>=3?'haute':'moyenne',
+      detail:`Le backlog actuel ne pourra probablement pas être résorbé dans la fenêtre de SLA cible sur : ${namesList(fluxSlaRisque,f=>f.type)}.` });
+  }
+  if(projRisque.length){
+    risques.push({ titre:`${projRisque.length} projet(s) à risque d'échéance`, gravite:'haute',
+      detail:`Échéance proche avec un reste à faire supérieur à l'allocation période sur : ${namesList(projRisque,pr=>pr.lot||pr.projet)}.` });
+  }
+  if(actSansRes.length){
+    risques.push({ titre:`${actSansRes.length} activité(s) sans ressource habilitée`, gravite:'haute',
+      detail:`Aucune ressource ne peut couvrir : ${namesList(actSansRes,pt=>pt.nom)}.` });
+  }
+  if(actCapInsuf.length){
+    risques.push({ titre:`${actCapInsuf.length} activité(s) en capacité insuffisante`, gravite: actCapInsuf.length>=2?'haute':'moyenne',
+      detail:`Le ratio norme appliqué à la quantité déclarée dépasse la capacité habilitée sur : ${namesList(actCapInsuf,pt=>pt.nom)}.` });
+  }
+  if(resSurcharge.length){
+    risques.push({ titre:`${resSurcharge.length} ressource(s) en surcharge individuelle`, gravite: resSurcharge.length>=3?'haute':'moyenne',
+      detail:`Taux de charge individuel au-dessus du seuil de surcharge pour : ${namesList(resSurcharge,r=>r.nom)}.` });
+  }
+  if(etpGap > 0.5){
+    risques.push({ titre:"Écart entre ETP requis et ETP actuelle", gravite: etpGap>2?'haute':'moyenne',
+      detail:`Il manquerait environ ${fmt(etpGap,1)} ETP pour couvrir la charge totale actuelle (${fmt(d.ETPrequis,2)} requis contre ${fmt(d.ETPactuel,2)} actuellement).` });
+  }
+  const gravOrder = { haute:0, moyenne:1, faible:2 };
+  risques.sort((a,b)=> gravOrder[a.gravite]-gravOrder[b.gravite]);
+  const risquesFinal = risques.slice(0,5);
+
+  /* ---- Recommandations (dérivées des risques identifiés) ---- */
+  const recommandations = [];
+  if(fluxSansRes.length) recommandations.push(`Habiliter au moins une ressource sur chaque flux actuellement sans couverture (${namesList(fluxSansRes,f=>f.type)}).`);
+  if(fluxCapInsuf.length) recommandations.push(`Réaffecter ou former des ressources supplémentaires sur les flux en capacité insuffisante (${namesList(fluxCapInsuf,f=>f.type)}).`);
+  if(projRisque.length) recommandations.push(`Revoir le plan de charge ou renforcer l'allocation des projets à risque avant leur échéance (${namesList(projRisque,pr=>pr.lot||pr.projet)}).`);
+  if(actSansRes.length) recommandations.push(`Habiliter au moins une ressource sur chaque activité actuellement sans couverture (${namesList(actSansRes,pt=>pt.nom)}).`);
+  if(actCapInsuf.length) recommandations.push(`Réexaminer le ratio norme ou renforcer les ressources habilitées sur les activités en capacité insuffisante (${namesList(actCapInsuf,pt=>pt.nom)}).`);
+  if(resSurcharge.length && resSousCharge.length) recommandations.push(`Rééquilibrer la charge entre les ressources en surcharge (${namesList(resSurcharge,r=>r.nom,3)}) et celles en sous-charge (${namesList(resSousCharge,r=>r.nom,3)}).`);
+  if(etpGap > 0.5) recommandations.push(`Étudier un renfort d'environ ${fmt(etpGap,1)} ETP (recrutement, prestataire, ou redéploiement interne) pour couvrir l'écart de charge.`);
+  if(fluxSlaRisque.length) recommandations.push(`Prioriser la résorption du backlog sur les flux à SLA en risque avant d'accepter de nouveau volume (${namesList(fluxSlaRisque,f=>f.type)}).`);
+  if(d.coutSousUtilisationTotal > 0 && resSousCharge.length) recommandations.push(`La sous-utilisation actuelle représente environ ${fmtMoney(d.coutSousUtilisationTotal)} de capacité payée non consommée sur la période — envisager un redéploiement vers les flux/projets en tension plutôt qu'un recrutement.`);
+  if(!recommandations.length) recommandations.push("Aucune action corrective urgente identifiée : maintenir le suivi périodique des indicateurs.");
+
+  /* ---- Leviers court terme / moyen terme ---- */
+  const leviers_court_terme = [];
+  if(resSurcharge.length && resSousCharge.length) leviers_court_terme.push("Rééquilibrer les affectations entre ressources existantes (matrice d'habilitation, répartition des projets).");
+  if(fluxSansRes.length || fluxCapInsuf.length) leviers_court_terme.push("Ouvrir ou renforcer des habilitations sur les flux en tension via la Matrice Flux.");
+  if(actSansRes.length || actCapInsuf.length) leviers_court_terme.push("Ouvrir ou renforcer des habilitations sur les activités en tension via la Matrice Activité.");
+  if(projRisque.length) leviers_court_terme.push("Reprioriser ou séquencer les projets à risque pour désengorger les échéances les plus proches.");
+  if(!leviers_court_terme.length) leviers_court_terme.push("Poursuivre le suivi régulier des indicateurs, aucun ajustement immédiat requis.");
+
+  const leviers_moyen_terme = [];
+  if(etpGap > 0.5){
+    const coutTxt = d.coutBesoinETP>0 ? ` (soit environ ${fmtMoney(d.coutBesoinETP)} sur la période)` : '';
+    leviers_moyen_terme.push(`Étudier un recrutement ou un renfort externe pour combler l'écart d'ETP${coutTxt}.`);
+  }
+  if(fluxSansRes.length || fluxCapInsuf.length || actSansRes.length || actCapInsuf.length) leviers_moyen_terme.push("Planifier un plan de formation/polyvalence pour élargir la couverture des flux et activités sensibles.");
+  if(d.statutGlobal==='SURCHARGE' || d.statutGlobal==='VIGILANCE') leviers_moyen_terme.push("Revoir le dimensionnement cible de l'équipe (paramètres de marge et de shrinkage) au regard de la charge structurelle observée.");
+  if(!leviers_moyen_terme.length) leviers_moyen_terme.push("Maintenir le dimensionnement actuel et surveiller l'évolution de la charge dans le temps (onglet Saisonnalité).");
+
+  /* ---- Synthèse ---- */
+  const topRisk = risquesFinal[0];
+  const coutSuffixe = d.masseSalarialePeriode>0 ? ` La masse salariale correspondante s'élève à ${fmtMoney(d.masseSalarialePeriode)} sur la période, dont ${fmtMoney(d.coutSousUtilisationTotal)} de capacité non utilisée.` : '';
+  const actSuffixe = d.chargeActivite>0 ? `, ${fmt(d.chargeActivite)} h d'activité à ratio` : '';
+  const synthese = `L'équipe dispose d'une capacité utile de ${fmt(d.capaciteUtileEquipe)} h pour une charge totale de ${fmt(d.chargeTotale)} h `+
+    `(dont ${fmt(d.chargeFlux)} h de flux et ${fmt(d.chargeProjetsTotal)} h de projets${actSuffixe}), soit un taux de charge de ${fmtPct(d.tauxChargeEquipe)}. `+
+    `Le score de tension consolidé s'établit à ${d.scoreTension}/100, pour un statut global classé « ${d.statutGlobal||'—'} ».${coutSuffixe} `+
+    (topRisk ? `Le point d'attention principal est : ${topRisk.titre.toLowerCase()}.` : `Aucun signal de risque majeur n'est détecté sur les indicateurs suivis.`);
+
+  return { synthese, risques:risquesFinal, recommandations:recommandations.slice(0,6), leviers_court_terme:leviers_court_terme.slice(0,4), leviers_moyen_terme:leviers_moyen_terme.slice(0,4) };
+}
+function renderAutoAnalysis(){
+  const box = document.getElementById('autoResult');
+  if(!box) return;
+  renderAnalysis(computeRuleBasedAnalysis(), 'autoResult');
+}
+
+/* =====================================================================
+   INIT
+===================================================================== */
+function init(){
+  buildParams();
+  buildRessources();
+  buildFlux();
+  buildProjets();
+  buildActivite();
+  rebuildMatrixHeaders();
+  buildAide();
+  setupSaveLoad();
+  setupSeasonTab();
+  const today = new Date();
+  document.getElementById('todayLabel').textContent = 'Nous sommes le ' + today.toLocaleDateString('fr-FR');
+  recalc();
+  refresh();
+}
+init();
+</script>
+</body>
+</html>
