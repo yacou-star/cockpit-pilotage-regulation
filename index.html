@@ -3175,7 +3175,7 @@ const AUTH = {
   async call(path, init){
     const opts = Object.assign({}, init || {});
     const doFetch = ()=> fetch(this.base() + path, Object.assign({}, opts, {
-      headers: Object.assign(this.headers(opts.authed === false), opts.extraHeaders || {})
+      headers: Object.assign(this.headers(opts.authed), opts.extraHeaders || {})
     }));
     let r = await doFetch();
     if(r.status === 401 && this.session && this.session.refresh_token){
