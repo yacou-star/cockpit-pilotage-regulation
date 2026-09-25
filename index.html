@@ -547,6 +547,7 @@ table.formula td.f-formula{background:var(--accent-soft); color:var(--bleu-fonce
     <button class="btn nav-btn" id="btnExport">💾 JSON</button>
     <button class="btn nav-btn" id="btnImport">📂 Import</button>
     <input type="file" id="fileImport" accept="application/json" style="display:none">
+    <button class="btn nav-btn" id="btnDeskSave" style="display:none" title="Enregistrer immédiatement sur le disque (raccourci : Cmd+S)">💾 Sauvegarder</button>
     <button class="btn nav-btn" id="btnAccount" title="Connexion, sauvegarde cloud et administration">👤 Compte</button>
     <button class="btn nav-btn gold" id="btnReport">📄 Rapport Word</button>
   </div>
@@ -2825,6 +2826,68 @@ function importData(data){
   rebuildMatrixActiviteHeaders();
   recalc();
   refresh();
+  scheduleDesktopSave();
+}
+
+/* =====================================================================
+   DESKTOP (Electron) — persistance locale automatique
+   L'app de bureau enregistre l'état sur disque à chaque modification,
+   avec 20 sauvegardes horodatées en réserve (dossier dédié).
+===================================================================== */
+let _deskSaveTimer = null;
+function deskStateSnapshot(){
+  return { params, resources, flux, projets, matrix, activites, matrixActivite, _savedAt: new Date().toISOString() };
+}
+function scheduleDesktopSave(){
+  if(!window.DesktopBridge) return;
+  clearTimeout(_deskSaveTimer);
+  _deskSaveTimer = setTimeout(()=>{
+    try{ window.DesktopBridge.saveState(deskStateSnapshot()); }catch(_){ }
+  }, 800);
+}
+async function deskSaveNow(loud){
+  if(!window.DesktopBridge) return;
+  const btn = document.getElementById('btnDeskSave');
+  try{
+    const res = await window.DesktopBridge.saveState(deskStateSnapshot());
+    if(res && res.ok){
+      const t = new Date().toLocaleTimeString('fr-FR');
+      if(loud !== false){ showToast('Sauvegardé ✓ à ' + t + ' — ' + (res.backups || 0) + ' sauvegarde(s) de secours en réserve'); }
+      if(btn){
+        btn.textContent = '✓ ' + t;
+        clearTimeout(deskSaveNow._tm);
+        deskSaveNow._tm = setTimeout(()=>{ btn.textContent = '💾 Sauvegarder'; }, 3000);
+      }
+    }else{
+      showToast('Échec de la sauvegarde : ' + ((res && res.error) || 'erreur inconnue'), true);
+    }
+  }catch(err){ showToast('Échec de la sauvegarde : ' + err.message, true); }
+}
+async function initDesktopPersistence(){
+  if(!window.DesktopBridge) return;
+  const btn = document.getElementById('btnDeskSave');
+  if(btn){
+    btn.style.display = 'inline-block';
+    btn.addEventListener('click', ()=> deskSaveNow());
+  }
+  // Raccourci clavier Cmd+S / Ctrl+S → sauvegarde immédiate
+  document.addEventListener('keydown', e=>{
+    if((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')){ e.preventDefault(); deskSaveNow(); }
+  });
+  // Sauvegarde aussi quand la fenêtre perd le focus (changement d'application)
+  window.addEventListener('blur', ()=>{ try{ window.DesktopBridge.saveState(deskStateSnapshot()); }catch(_){ } });
+  try{
+    const st = await window.DesktopBridge.loadState();
+    // Le cloud (si session active) a priorité : il restaure après nous si besoin.
+    setTimeout(async ()=>{
+      if(window.__cloudRestored){ return; }
+      if(st && st.params){
+        try{ importData(st); showToast('Sauvegarde locale rechargée ✓ (application de bureau)'); }catch(_){ }
+      }
+    }, 1200);
+  }catch(_){ }
+  // Filet de sécurité : sauvegarde périodique
+  window.setInterval(()=>{ try{ window.DesktopBridge.saveState(deskStateSnapshot()); }catch(_){ } }, 60000);
 }
 
 function refreshParamInputs(){
@@ -3388,7 +3451,7 @@ const AUTH = {
     try{ await this.fetchProfile(); }catch(_){}
     try{
       const row = await this.load();
-      if(row && row.data){ importData(row.data); }
+      if(row && row.data){ window.__cloudRestored = true; importData(row.data); }
     }catch(_){}
   },
   async updatePassword(newPass){
@@ -3448,6 +3511,7 @@ async function authAfterLogin(){
   try{
     const row = await AUTH.load();
     if(row && row.data){
+      window.__cloudRestored = true;
       importData(row.data);
       showToast('Bon retour ! Vos données du ' + new Date(row.updated_at).toLocaleString('fr-FR') + ' ont été rechargées ✓');
     }
@@ -3640,6 +3704,7 @@ function init(){
   buildAide();
   setupSaveLoad();
   setupAuth();
+  initDesktopPersistence();
   setupSeasonTab();
   const today = new Date();
   document.getElementById('todayLabel').textContent = 'Nous sommes le ' + today.toLocaleDateString('fr-FR');
