@@ -11,13 +11,13 @@ Application cockpit autonome (un seul fichier `index.html`, aucune dépendance e
 - Ouvrez https://github.com/new
 - Nom du dépôt : `cockpit-pilotage-regulation`
 - Laissez **toutes** les cases d'initialisation décochées (pas de README, pas de licence, pas de .gitignore)
-- Visibilité : **Private** convient très bien (GitHub Pages fonctionne sur les dépôts privés, offre gratuite incluse)
+- Visibilité : **Public** — le plan gratuit de GitHub exige un dépôt public pour activer Pages (aucun risque : l'application ne contient aucune donnée, le cockpit est vide par défaut et chacun garde ses données dans son propre navigateur)
 - Cliquez **Create repository** — ne suivez pas les commandes d'exemple affichées ensuite, tout est déjà fait ici
 
 **2. Connecter et pousser**
 
 ```bash
-git remote add origin https://github.com/<VOTRE-UTILISATEUR>/cockpit-pilotage-regulation.git
+git remote add origin https://github.com/yacou-star/cockpit-pilotage-regulation.git
 git push -u origin main
 ```
 
@@ -31,7 +31,7 @@ git push -u origin main
 - *Build and deployment* → Source : **Deploy from a branch**
 - Branch : `main` / folder : `/(root)` → **Save**
 
-L'URL `https://<VOTRE-UTILISATEUR>.github.io/cockpit-pilotage-regulation/` est active en **1 à 2 minutes** (première publication).
+L'URL `https://yacou-star.github.io/cockpit-pilotage-regulation/` est active en **1 à 2 minutes** (première publication).
 
 ## 🔄 Mettre à jour l'application
 
