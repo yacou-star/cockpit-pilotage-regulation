@@ -1,77 +1,96 @@
-# 🗄️ Connecter le cockpit à Supabase (backend gratuit)
+# 🔐 Cockpit avec comptes utilisateurs (Supabase Auth)
 
-Ce guide connecte le cockpit au **cloud Supabase** : vos données (paramètres, ressources, flux, projets, activités, matrices) sont enregistrées en ligne et rechargeables depuis n'importe quel appareil, par toute l'équipe.
+Chaque utilisateur **crée son compte** (e-mail + mot de passe), ne voit que **ses** données, et un rôle **administrateur** peut consulter et gérer l'ensemble. Le tout premier compte créé devient automatiquement administrateur — ce sera le vôtre.
 
-**Vue d'ensemble :** créer un projet Supabase → exécuter `schema.sql` → coller URL + clé dans le cockpit → enregistrer. Comptez **10 minutes**, tout est gratuit.
+**Vue d'ensemble :** créer le projet Supabase → exécuter `supabase/schema.sql` → coller URL + clé dans le cockpit → créer votre compte. Comptez **15 minutes**, tout est gratuit.
 
 ---
 
 ## 1. Créer le projet Supabase (~3 min)
 
-1. Ouvrez **https://supabase.com** → **Start your project** → connectez-vous **avec GitHub** (votre compte yacou-star fonctionne directement)
+1. **https://supabase.com** → **Start your project** → connexion **avec GitHub** (votre compte yacou-star fonctionne directement)
 2. **New project** :
    - Name : `cockpit-pilotage`
-   - Database Password : générez un mot de passe et **gardez-le précieusement** (il ne sert qu'à l'administration directe de la base, le cockpit n'en a pas besoin)
+   - Database Password : générez-le et **gardez-le précieusement** (administration directe de la base uniquement — le cockpit n'en a pas besoin)
    - Region : **West EU (Paris)** si proposée
-3. Attendez ~2 minutes la fin du provisionnement
+3. Attendez ~2 minutes
 
-## 2. Créer la table (~2 min)
+## 2. Exécuter le schéma (~2 min)
 
-1. Dans le menu de gauche : **SQL Editor** → **New query**
-2. Ouvrez le fichier **`supabase/schema.sql`** de ce dossier, **copiez tout** son contenu et **collez-le** dans l'éditeur
-3. **Run** (ou Ctrl+Enter) → vous devez voir `Success. No rows returned`
-4. Vérification : menu **Table Editor** → la table **`cockpit_state`** apparaît
+1. **SQL Editor** → **New query**
+2. Ouvrez **`supabase/schema.sql`**, copiez **tout**, collez, **Run** → `Success. No rows returned`
+3. Vérification : **Table Editor** → tables **`profiles`** et **`cockpit_state`** présentes
 
-## 3. Récupérer URL et clé (~1 min)
+> Cette version **remplace** l'ancienne (partagée) : si vous aviez déjà exécuté l'ancien `schema.sql`, le nouveau script supprime et recrée `cockpit_state` — les données partagées d'alors ne sont pas transférables automatiquement (elles appartenaient à tout le monde, pas à un compte).
 
-Dans **Settings → API** (menu de gauche) :
-- **Project URL** : `https://xxxxxxxx.supabase.co` → c'est l'**URL du projet**
-- **Project API Keys → `anon` / `public`** : la longue clé `eyJhbGciOi...` → c'est la **clé publique**
+## 3. Autoriser le site à ouvrir des comptes (~1 min)
 
-⚠️ Prenez bien la clé **anon/public** — pas la clé `service_role` qui, elle, est secrète et ne doit jamais être mise dans une page web.
+Le site est servi depuis `https://yacou-star.github.io` — il faut le déclarer :
 
-## 4. Connecter le cockpit (~1 min)
+1. **Authentication → URL Configuration → Redirect URLs** → ajoutez :
+   `https://yacou-star.github.io/*`
+2. **Authentication → Providers → Email** → vérifiez qu'il est **activé** (par défaut oui)
 
-1. Ouvrez le cockpit → bouton **☁️ Cloud** dans la barre du haut
-2. Collez l'**URL** et la **clé publique** — statut attendu : vert « Connecté ✓ »
-3. **Espace de travail** : gardez `cockpit`, ou mettez un nom par équipe (ex. `equipe-cd76`) pour séparer les jeux de données dans la même base
-4. Cliquez **⬆️ Enregistrer dans le cloud** → toast « Cockpit enregistré ✓ »
+*(Pour tester en local, ajoutez aussi `http://127.0.0.1:*` dans les Redirect URLs.)*
 
-## 5. Vérifier le multi-appareils
+## 4. Connecter le cockpit (~2 min)
 
-- Ouvrez le site depuis un autre navigateur/appareil → ☁️ Cloud → mêmes URL + clé + espace → **⬇️ Charger le cloud** → toutes vos données reviennent
-- Dans Supabase, **Table Editor → cockpit_state** : vous voyez la ligne et sa date de mise à jour
+1. Ouvrez https://yacou-star.github.io/cockpit-pilotage-regulation/ → **👤 Compte**
+2. Dépliez **Configuration du projet Supabase** → collez l'**URL** (Settings → API → Project URL) et la **clé publique (anon)** — une seule fois par navigateur
+3. **Créer mon compte** : votre e-mail + un mot de passe (8 caractères min.)
+4. Selon la configuration Supabase :
+   - **Sans confirmation e-mail** (par défaut) : vous êtes connecté immédiatement — et comme premier compte, vous êtes **administrateur**
+   - **Avec confirmation e-mail** : cliquez le lien reçu, puis connectez-vous
 
----
+## 5. Vérifier l'isolation des comptes (~3 min)
+
+1. Créez un **2ᵉ compte** (autre e-mail, même navigateur après déconnexion, ou navigation privée) → il est simple **Utilisateur**
+2. Sur ce compte : saisissez des données différentes → **Enregistrer dans le cloud** → déconnectez-vous
+3. Reconnectez-vous avec le **1ᵉʳ compte** : vos données sont les vôtres — pas celles du 2ᵉ
+4. **🛡️ Administration** en bas de la fenêtre Compte : les 2 comptes apparaissent, avec leurs dates de sauvegarde
+
+## 6. Pouvoirs de l'administrateur
+
+| Action | Comment |
+|---|---|
+| **Voir les données** d'un compte | Panneau admin → **Voir** — les données s'affichent dans le cockpit (bandeau « Vue administrateur »), bouton d'enregistrement verrouillé pour ne pas écraser ses données |
+| **Supprimer les données** d'un compte (il garde son login) | Panneau admin → **Vider** |
+| **Promouvoir / rétrograder** un compte | Panneau admin → **Promouvoir admin** / **Rétrograder** |
+| **Supprimer définitivement un compte** | Supabase → **Authentication → Users** → ⋯ → **Delete user** → toutes les données du cockpit sont effacées automatiquement (cascade) |
+| **Revenir à ses propres données** | Bandeau jaune → **↩️ Revenir à mes données** |
 
 ## Utilisation au quotidien
 
-| Action | Bouton |
-|---|---|
-| Sauvegarder votre travail | ☁️ Cloud → **Enregistrer dans le cloud** |
-| Récupérer les données | ☁️ Cloud → **Charger le cloud** |
-| Sauvegarde fichier (secours) | 💾 JSON (inchangé) |
+- Chaque utilisateur : 👤 Compte → Se connecter. Au démarrage, le cockpit **recharge automatiquement** la dernière sauvegarde de son compte.
+- **⬆️ Enregistrer dans le cloud** quand vous avez fini de travailler ; **⬇️ Recharger mes données** pour revenir à la dernière sauvegarde.
+- Sans compte, le cockpit reste utilisable **hors ligne** — les données ne quittent pas le navigateur (boutons JSON inchangés).
 
-La configuration (URL + clé) est mémorisée **par navigateur** — à ressaisir une seule fois par appareil. L'Export/Import JSON reste disponible en parallèle : rien n'est supprimé.
+## Sécurité — ce qui est réellement protégé
 
-## Sécurité — ce qu'il faut savoir
+- **Isolation stricte** : un utilisateur ne peut lire ni écrire que dans ses propres données — c'est la base de données elle-même (RLS) qui l'impose, pas seulement l'interface.
+- **Admin = administration**, pas espionnage silencieux : toute consultation des données d'un utilisateur se voit (bandeau + date « Données »).
+- L'admin peut **promouvoir** qui il veut ; il ne peut pas se rétrograder lui-même par erreur (verrou sur sa propre ligne).
+- Le mot de passe est géré par Supabase Auth (hachage, sessions, expiration, rafraîchissement automatique).
+- **Limites connues** : tout **admin** peut consulter les données de tous (c'est le principe demandé) ; n'importe qui peut **créer un compte** (email de confirmation recommandé pour filtrer — voir ci-dessous) ; la clé `anon` reste publique par conception.
 
-- La clé `anon` est **publique par conception** : quiconque a l'URL du site peut lire/écrire les données du cockpit. C'est le même niveau de protection que le fichier JSON d'origine, mais partagé.
-- Le cloisonnement se fait par **espace de travail** : deux équipes utilisant le même projet Supabase mais des espaces différents ne voient pas les données l'une de l'autre.
-- Pour un vrai contrôle d'accès (authentification, un compte par personne) : activer Supabase **Auth** dans le projet et restreindre les policies — je peux le faire évoluer plus tard si le besoin arrive.
+## Options recommandées
+
+- **Confirmation e-mail obligatoire** (filtre les comptes fantaisistes) : Authentication → Providers → Email → **Confirm email** activé.
+- **Limiter les inscriptions** : Authentication → Providers → Email → désactiver « Allow new users to sign up » une fois l'équipe créée — les connexions restent possibles, plus personne ne peut s'auto-inscrire.
 
 ## Dépannage
 
-| Symptôme | Cause probable | Solution |
+| Symptôme | Cause | Solution |
 |---|---|---|
-| Statut rouge « Table cockpit_state introuvable » | `schema.sql` pas exécuté | Refaire l'étape 2 |
-| `Erreur 401` | Clé invalide (copie partielle ?) | Recoller la clé complète depuis Settings → API |
-| `Erreur 404` sur enregistrement | URL mal formée | Doit finir par `.supabase.co`, sans `/rest/v1` derrière |
-| « Aucune sauvegarde cloud » au chargement | Espace de travail différent | Vérifier que le champ Espace est identique sur les deux appareils |
-| Rien ne change sur l'autre appareil | Config non enregistrée sur cet appareil | Ressaisir URL + clé (mémorisées ensuite) |
+| « Invalid API key » / erreur 401 | Clé ou URL erronée | Ressaisir depuis Settings → API (clé complète, sans espace) |
+| « User already registered » | Compte déjà créé | Se connecter plutôt que créer |
+| Compte créé mais connexion impossible | Confirmation e-mail activée | Valider le lien reçu puis se connecter |
+| « Database error saving new user » / profil manquant | Trigger non créé | Ré-exécuter tout `schema.sql` |
+| L'admin ne voit pas le panneau | Il n'est pas le 1ᵉʳ compte | Un autre admin peut le promouvoir, ou SQL Editor : `update public.profiles set role='admin' where email='...';` |
+| « Database error » à la connexion d'un compte existant | Ancien format de table (version partagée) | Ré-exécuter `schema.sql` (il recrée les tables au nouveau format) |
 
 ## Fichiers de cette intégration
 
-- `supabase/schema.sql` — le script à exécuter dans Supabase
-- `github-pages-deploy/index.html` — l'app avec le module ☁️ intégré (déployée sur GitHub Pages)
+- `supabase/schema.sql` — schéma complet (profils, rôles, isolation, cascade)
+- `github-pages-deploy/index.html` — l'app avec le module 👤 Compte (déployée sur GitHub Pages)
 - Ce guide
