@@ -4,6 +4,8 @@ Chaque utilisateur **crée son compte** (e-mail + mot de passe), ne voit que **s
 
 **Vue d'ensemble :** créer le projet Supabase → exécuter `supabase/schema.sql` → intégrer URL + clé dans l'application → créer votre compte. Comptez **15 minutes**, tout est gratuit.
 
+> ✅ **INSTALLATION DÉJÀ EFFECTUÉE** (25/09/2026) : projet `cockpit-pilotage` créé et configuré automatiquement — schéma exécuté, auth activée sans confirmation e-mail, admin : `yacinenekrouf@gmail.com`. Les sections ci-dessous ne servent que de référence ou pour recréer un projet neuf.
+
 ## 👥 Qui fait quoi ?
 
 | Qui | Quoi | Quand |
