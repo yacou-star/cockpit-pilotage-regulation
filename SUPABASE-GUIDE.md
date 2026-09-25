@@ -1,6 +1,6 @@
 # 🔐 Cockpit avec comptes utilisateurs (Supabase Auth)
 
-Chaque utilisateur **crée son compte** (e-mail + mot de passe), ne voit que **ses** données, et un rôle **administrateur** peut consulter et gérer l'ensemble. Le tout premier compte créé devient automatiquement administrateur — ce sera le vôtre.
+Chaque utilisateur **crée son compte** (e-mail + mot de passe), ne voit que **ses** données, et un rôle **administrateur** peut consulter et gérer l'ensemble. Les administrateurs sont désignés **par e-mail** dans le script d'installation — rien n'est automatique.
 
 **Vue d'ensemble :** créer le projet Supabase → exécuter `supabase/schema.sql` → coller URL + clé dans le cockpit → créer votre compte. Comptez **15 minutes**, tout est gratuit.
 
@@ -19,6 +19,7 @@ Chaque utilisateur **crée son compte** (e-mail + mot de passe), ne voit que **s
 
 1. **SQL Editor** → **New query**
 2. Ouvrez **`supabase/schema.sql`**, copiez **tout**, collez, **Run** → `Success. No rows returned`
+   - ⚠️ **Avant de lancer**, personnalisez la ligne marquée **`← ADMIN`** : remplacez `vous@exemple.fr` par **votre adresse e-mail** (ceux qui créeront un compte avec cet e-mail deviennent administrateurs)
 3. Vérification : **Table Editor** → tables **`profiles`** et **`cockpit_state`** présentes
 
 > Cette version **remplace** l'ancienne (partagée) : si vous aviez déjà exécuté l'ancien `schema.sql`, le nouveau script supprime et recrée `cockpit_state` — les données partagées d'alors ne sont pas transférables automatiquement (elles appartenaient à tout le monde, pas à un compte).
@@ -39,7 +40,7 @@ Le site est servi depuis `https://yacou-star.github.io` — il faut le déclarer
 2. Dépliez **Configuration du projet Supabase** → collez l'**URL** (Settings → API → Project URL) et la **clé publique (anon)** — une seule fois par navigateur
 3. **Créer mon compte** : votre e-mail + un mot de passe (8 caractères min.)
 4. Selon la configuration Supabase :
-   - **Sans confirmation e-mail** (par défaut) : vous êtes connecté immédiatement — et comme premier compte, vous êtes **administrateur**
+   - **Sans confirmation e-mail** (par défaut) : vous êtes connecté immédiatement — avec le rôle **administrateur** si votre e-mail est dans la liste du script
    - **Avec confirmation e-mail** : cliquez le lien reçu, puis connectez-vous
 
 ## 5. Vérifier l'isolation des comptes (~3 min)
@@ -48,6 +49,14 @@ Le site est servi depuis `https://yacou-star.github.io` — il faut le déclarer
 2. Sur ce compte : saisissez des données différentes → **Enregistrer dans le cloud** → déconnectez-vous
 3. Reconnectez-vous avec le **1ᵉʳ compte** : vos données sont les vôtres — pas celles du 2ᵉ
 4. **🛡️ Administration** en bas de la fenêtre Compte : les 2 comptes apparaissent, avec leurs dates de sauvegarde
+
+## Désigner les administrateurs
+
+Le rôle admin n'est **jamais** attribué automatiquement. Trois façons de le gérer :
+
+- **À l'avance** (recommandé) : dans `schema.sql`, ligne `← ADMIN`, listez les e-mails : `array['moi@entreprise.fr','collegue@entreprise.fr']` puis Run. Tout compte créé avec ces e-mails naît admin.
+- **Après coup** : SQL Editor → `update public.profiles set role = 'admin' where email = 'quelqu_un@exemple.fr';` — la personne voit son panneau admin à sa prochaine connexion.
+- **Depuis le cockpit** : un admin existant utilise le bouton **Promouvoir admin** du panneau 🛡️.
 
 ## 6. Pouvoirs de l'administrateur
 
@@ -86,7 +95,7 @@ Le site est servi depuis `https://yacou-star.github.io` — il faut le déclarer
 | « User already registered » | Compte déjà créé | Se connecter plutôt que créer |
 | Compte créé mais connexion impossible | Confirmation e-mail activée | Valider le lien reçu puis se connecter |
 | « Database error saving new user » / profil manquant | Trigger non créé | Ré-exécuter tout `schema.sql` |
-| L'admin ne voit pas le panneau | Il n'est pas le 1ᵉʳ compte | Un autre admin peut le promouvoir, ou SQL Editor : `update public.profiles set role='admin' where email='...';` |
+| L'admin ne voit pas le panneau | Son e-mail n'est pas dans la liste | SQL Editor : `update public.profiles set role='admin' where email='...';` |
 | « Database error » à la connexion d'un compte existant | Ancien format de table (version partagée) | Ré-exécuter `schema.sql` (il recrée les tables au nouveau format) |
 
 ## Fichiers de cette intégration

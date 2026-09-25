@@ -1,7 +1,8 @@
 -- ============================================================
 -- Cockpit Pilotage & Régulation — schéma Supabase AVEC COMPTES
 -- Chaque utilisateur a son compte et ses données isolées.
--- Le PREMIER compte créé devient automatiquement administrateur.
+-- Les ADMINISTRATEURS sont désignés PAR E-MAIL dans ce script
+-- (ligne marquée "← ADMIN" dans handle_new_user ci-dessous).
 --
 -- À exécuter UNE FOIS dans Supabase > SQL Editor > New query
 -- (remplace l'ancienne version sans comptes : les tables
@@ -46,7 +47,10 @@ begin
   values (
     new.id,
     new.email,
-    case when (select count(*) from public.profiles) = 0 then 'admin' else 'user' end
+    case
+      when lower(new.email) = any (array['vous@exemple.fr']) then 'admin'  -- ← ADMIN : mettez ici le(s) e-mail(s) admin, ex. array['a@x.fr','b@x.fr']
+      else 'user'
+    end
   )
   on conflict (id) do nothing;
   return new;
@@ -96,3 +100,8 @@ create policy "state update" on public.cockpit_state
 create policy "state delete" on public.cockpit_state
   for delete to authenticated
   using (auth.uid() = user_id or public.is_admin());
+
+-- ------------------------------------------------------------
+-- Pour promouvoir admin un compte DÉJÀ créé (au besoin, SQL Editor) :
+-- update public.profiles set role = 'admin' where email = 'quelqu_un@exemple.fr';
+-- ------------------------------------------------------------
