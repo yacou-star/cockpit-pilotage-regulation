@@ -36,7 +36,7 @@ as $$
 $$;
 
 -- 4. À l'inscription : création automatique du profil.
---    Le tout premier compte créé devient administrateur.
+--    Rôle admin attribué selon la liste d'e-mails ci-dessous.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
