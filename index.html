@@ -2226,7 +2226,7 @@ function buildReportTable(D, headers, rows, colWidthsPct){
   return new D.Table({ rows:[headerRow, ...bodyRows], width:{ size:100, type: D.WidthType.PERCENTAGE } });
 }
 function reportHeading(D, text, level){
-  return new D.Paragraph({ text, heading: level || D.HeadingLevel.HEADING_1, spacing:{ before:280, after:140 } });
+  return new D.Paragraph({ text, heading: level || D.HeadingLevel.HEADING_1 });
 }
 function reportPara(D, text, opts={}){
   return new D.Paragraph({ children:[ new D.TextRun({ text, size:20, ...opts }) ], spacing:{ after:120 } });
@@ -2244,12 +2244,73 @@ function reportFooter(D){
   return new D.Footer({ children:[ new D.Paragraph({
     alignment: D.AlignmentType.CENTER,
     children:[
-      new D.TextRun({ text:'Pilotage & Régulation — Page ', size:14, color: INKSOFT }),
+      new D.TextRun({ text:'Pilotage & Régulation — Rapport de charge — Page ', size:14, color: INKSOFT }),
       new D.TextRun({ children:[ D.PageNumber.CURRENT ], size:14, color: INKSOFT }),
       new D.TextRun({ text:' / ', size:14, color: INKSOFT }),
       new D.TextRun({ children:[ D.PageNumber.TOTAL_PAGES ], size:14, color: INKSOFT }),
     ]
   })]});
+}
+function reportHeader(D){
+  return new D.Header({ children:[ new D.Paragraph({
+    tabStops:[{ type: D.TabStopType.RIGHT, position: 9026 }],
+    border:{ bottom:{ color: LINE, size: 6, style: D.BorderStyle.SINGLE, space: 4 } },
+    children:[
+      new D.TextRun({ text:'MISSION DE CONSEIL — PILOTAGE & RÉGULATION', size:13, color: INKSOFT }),
+      new D.TextRun({ text:'\tDOCUMENT CONFIDENTIEL', size:13, color: INKSOFT }),
+    ]
+  })]});
+}
+
+/* ---- Blocs « cabinet » : bande titre, bandeau KPI, encadré ---- */
+function coverTitleBand(D){
+  return new D.Table({
+    rows:[ new D.TableRow({ children:[ new D.TableCell({
+      shading:{ fill: NAVY, type: D.ShadingType.CLEAR, color:'auto' },
+      margins:{ top:520, bottom:520, left:340, right:340 },
+      children:[
+        new D.Paragraph({ spacing:{ after:120 }, children:[ new D.TextRun({ text:'MISSION DE CONSEIL', bold:true, size:16, color:'8FB8DC' }) ] }),
+        new D.Paragraph({ children:[ new D.TextRun({ text:'Rapport de Pilotage & Régulation', bold:true, size:52, color:'FFFFFF' }) ] }),
+        new D.Paragraph({ spacing:{ before:140 }, children:[ new D.TextRun({ text:'Cockpit de charge — capacité, flux, projets et activité', size:22, color:'CFE0F1' }) ] }),
+      ]
+    })]})],
+    width:{ size:100, type: D.WidthType.PERCENTAGE }
+  });
+}
+function kpiStrip(D, items){
+  const cellBorders = {
+    top:{ style: D.BorderStyle.SINGLE, size:20, color: NAVY },
+    bottom:{ style: D.BorderStyle.SINGLE, size:4, color: LINE },
+    left:{ style: D.BorderStyle.SINGLE, size:4, color: LINE },
+    right:{ style: D.BorderStyle.SINGLE, size:4, color: LINE },
+  };
+  return new D.Table({
+    rows:[ new D.TableRow({ children: items.map(it=> new D.TableCell({
+      borders: cellBorders,
+      margins:{ top:140, bottom:140, left:100, right:100 },
+      children:[
+        new D.Paragraph({ alignment: D.AlignmentType.CENTER, spacing:{ after:40 }, children:[ new D.TextRun({ text:it.value, bold:true, size:36, color: it.color||NAVY }) ] }),
+        new D.Paragraph({ alignment: D.AlignmentType.CENTER, children:[ new D.TextRun({ text:it.label.toUpperCase(), size:15, color: INKSOFT }) ] }),
+      ]
+    })) })],
+    width:{ size:100, type: D.WidthType.PERCENTAGE }
+  });
+}
+function calloutBox(D, children){
+  return new D.Table({
+    rows:[ new D.TableRow({ children:[ new D.TableCell({
+      shading:{ fill:'F1F5F9', type: D.ShadingType.CLEAR, color:'auto' },
+      borders:{
+        top:{ style: D.BorderStyle.SINGLE, size:4, color: LINE },
+        bottom:{ style: D.BorderStyle.SINGLE, size:4, color: LINE },
+        right:{ style: D.BorderStyle.SINGLE, size:4, color: LINE },
+        left:{ style: D.BorderStyle.SINGLE, size:28, color: ACCENT },
+      },
+      margins:{ top:140, bottom:140, left:220, right:220 },
+      children
+    })]})],
+    width:{ size:100, type: D.WidthType.PERCENTAGE }
+  });
 }
 
 /* =====================================================================
@@ -2459,26 +2520,39 @@ async function buildReportBlob(){
   const chart = await buildDashboardChartPNG();
   const chartEmbedW = 620, chartEmbedH = Math.round(chartEmbedW * chart.height/chart.width);
 
-  /* ---- Page de garde + synthèse exécutive ---- */
+  /* ---- Page de garde « cabinet » + sommaire ---- */
   const cover = [
-    new D.Paragraph({ text:'', spacing:{ before:400 } }),
-    new D.Paragraph({ children:[ new D.TextRun({ text:'RAPPORT DE PILOTAGE & RÉGULATION', bold:true, size:40, color:NAVY }) ], alignment:D.AlignmentType.CENTER }),
-    new D.Paragraph({ children:[ new D.TextRun({ text:'Cockpit de charge — Capacité, Flux et Projets', size:22, color:INKSOFT }) ], alignment:D.AlignmentType.CENTER, spacing:{ before:100, after:30 } }),
-    new D.Paragraph({ children:[ new D.TextRun({ text:`Période étudiée : ${params.horizon}  ·  ${fmt(DB.heuresETP,1)} h ETP sur la période`, size:16, color:INKSOFT }) ], alignment:D.AlignmentType.CENTER, spacing:{ after:10 } }),
-    new D.Paragraph({ children:[ new D.TextRun({ text:`Statut global : ${d.statutGlobal||'—'}  ·  Score de tension : ${d.scoreTension}/100  ·  Édité le ${today}`, size:19, color:ACCENT, bold:true }) ], alignment:D.AlignmentType.CENTER, spacing:{ before:100, after:260 } }),
+    coverTitleBand(D),
+    new D.Paragraph({ text:'', spacing:{ before:300 } }),
+    new D.Paragraph({ children:[ new D.TextRun({ text:`Période étudiée : ${params.horizon}  ·  ${fmt(DB.heuresETP,1)} h ETP sur la période  ·  Édité le ${today}`, size:18, color:INKSOFT }) ], spacing:{ after:220 } }),
+    kpiStrip(D, [
+      { value: fmtPct(d.tauxChargeEquipe), label:'Taux de charge équipe' },
+      { value: `${d.scoreTension}/100`, label:'Score de tension', color: ACCENT },
+      { value: d.statutGlobal||'—', label:'Statut global' },
+      { value: fmt(d.ETPrequis,2), label:'ETP requis' },
+    ]),
+    new D.Paragraph({ text:'', spacing:{ before:300 } }),
     new D.Paragraph({
       alignment: D.AlignmentType.CENTER,
       children:[ new D.ImageRun({ type:'png', data: chart.data, transformation:{ width:chartEmbedW, height:chartEmbedH } }) ]
     }),
+    new D.Paragraph({ alignment: D.AlignmentType.CENTER, spacing:{ before:80 }, children:[ new D.TextRun({ text:'Tableau de bord consolidé', size:14, color:INKSOFT, italics:true }) ] }),
+    new D.Paragraph({ text:'', spacing:{ before:300 } }),
+    new D.Paragraph({ children:[ new D.TextRun({ text:'Document confidentiel — diffusion restreinte. Généré automatiquement depuis le cockpit Pilotage & Régulation.', size:14, color:INKSOFT, italics:true }) ] }),
     new D.Paragraph({ children:[ new D.PageBreak() ] }),
 
-    reportHeading(D, 'Synthèse exécutive', D.HeadingLevel.HEADING_1),
+    reportHeading(D, 'Sommaire', D.HeadingLevel.HEADING_1),
+    new D.TableOfContents('Sommaire', { hyperlink:true, headingStyleRange:'1-1' }),
+    new D.Paragraph({ spacing:{ before:200 }, children:[ new D.TextRun({ text:'Dans Word : clic droit sur le sommaire → « Mettre à jour les champs » pour actualiser la pagination.', size:14, color:INKSOFT, italics:true }) ] }),
+    new D.Paragraph({ children:[ new D.PageBreak() ] }),
+
+    reportHeading(D, '1. Synthèse exécutive', D.HeadingLevel.HEADING_1),
   ];
 
   const usedAnalysis = computeRuleBasedAnalysis();
   const analysisSourceNote = "Synthèse générée automatiquement (analyse par règles, sans appel réseau ni service externe).";
+  cover.push(calloutBox(D, [ reportPara(D, usedAnalysis.synthese) ]));
   cover.push(reportPara(D, analysisSourceNote, { italics:true, color:INKSOFT, size:16 }));
-  cover.push(reportPara(D, usedAnalysis.synthese));
   if((usedAnalysis.risques||[]).length){
     cover.push(reportHeading(D, 'Risques identifiés', D.HeadingLevel.HEADING_2));
     usedAnalysis.risques.forEach(r=> cover.push(reportBullet(D, `[${(r.gravite||'').toUpperCase()}] ${r.titre||''} — ${r.detail||''}`)));
@@ -2496,7 +2570,7 @@ async function buildReportBlob(){
     usedAnalysis.leviers_moyen_terme.forEach(x=> cover.push(reportBullet(D, x)));
   }
 
-  cover.push(reportHeading(D, 'Tableau de bord', D.HeadingLevel.HEADING_1));
+  cover.push(reportHeading(D, '2. Tableau de bord', D.HeadingLevel.HEADING_1));
   cover.push(buildReportTable(D, ['Indicateur','Valeur'], [
     ['Capacité totale brute équipe', fmt(d.capaciteTotaleBrute)+' h'],
     ['Capacité utile équipe', fmt(d.capaciteUtileEquipe)+' h'],
@@ -2538,7 +2612,7 @@ async function buildReportBlob(){
     const ordered = seasonOrderedSnapshots();
     const seasonAnalysis = computeSeasonAutoAnalysis(ordered);
 
-    cover.push(reportHeading(D, 'Saisonnalité & évolution', D.HeadingLevel.HEADING_1));
+    cover.push(reportHeading(D, '3. Saisonnalité & évolution', D.HeadingLevel.HEADING_1));
     cover.push(buildReportTable(D, ['Période','Taux de charge','Score tension','Statut','ETP requis'],
       ordered.map(s=>[ s.label+(s.isCurrent?' (actuel)':''), fmtPct(s.kpis.tauxChargeEquipe), String(s.kpis.scoreTension), s.kpis.statutGlobal||'—', fmt(s.kpis.ETPrequis,2) ]),
       [30,20,17,18,15]));
@@ -2634,10 +2708,24 @@ async function buildReportBlob(){
     annexes.push(buildReportTable(D, ['Indicateur','Formule','Explication'], group.rows, [18,34,48]));
   });
 
+  annexes.push(new D.Paragraph({ children:[ new D.PageBreak() ] }));
+  annexes.push(reportHeading(D, 'Avertissement', D.HeadingLevel.HEADING_2));
+  annexes.push(reportPara(D, "Le présent rapport a été généré automatiquement à partir des données saisies dans l'application Pilotage & Régulation à la date d'édition. Les projections et analyses restent des aides à la décision : elles ne remplacent pas la validation opérationnelle par les responsables concernés.", { italics:true, color:INKSOFT, size:16 }));
+  annexes.push(reportPara(D, "Document confidentiel — diffusion restreinte aux participants de la mission.", { italics:true, color:INKSOFT, size:16 }));
+
+  const header = reportHeader(D);
   const doc = new D.Document({
+    styles:{
+      default:{
+        document:{ run:{ font:'Calibri', size:20, color: INK } },
+        heading1:{ run:{ font:'Georgia', size:32, bold:true, color: NAVY }, paragraph:{ spacing:{ before:360, after:160 } } },
+        heading2:{ run:{ font:'Georgia', size:24, bold:true, color: NAVY }, paragraph:{ spacing:{ before:280, after:120 } } },
+        heading3:{ run:{ font:'Georgia', size:21, bold:true, color: INK }, paragraph:{ spacing:{ before:220, after:100 } } },
+      }
+    },
     sections: [
-      { properties:{ page:{ size:{ orientation: D.PageOrientation.PORTRAIT } } }, footers:{ default: footer }, children: cover },
-      { properties:{ page:{ size:{ orientation: D.PageOrientation.LANDSCAPE } } }, footers:{ default: footer }, children: annexes },
+      { properties:{ page:{ size:{ orientation: D.PageOrientation.PORTRAIT } } }, headers:{ default: header }, footers:{ default: footer }, children: cover },
+      { properties:{ page:{ size:{ orientation: D.PageOrientation.LANDSCAPE } } }, headers:{ default: header }, footers:{ default: footer }, children: annexes },
     ]
   });
 
